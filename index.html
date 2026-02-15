@@ -76,11 +76,11 @@ const db = firebase.database();
 
 let currentUser = localStorage.getItem("currentUser");
 
-// ألوان عشوائية
+// ألوان خلفيات عشوائية
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
 function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
 
-// الهيكل للسنة والشعبة والمواد
+// الهيكل الأساسي للسنة والشعبة والمواد
 const yearSections = {
 "1ère":[""],
 "2ème":["Eco","Lettres","Info","Science","Sport"],
@@ -121,7 +121,7 @@ function login(){let name=document.getElementById("username").value.trim(); if(n
 function logout(){localStorage.removeItem("currentUser"); location.reload();}
 function showPlatform(){document.getElementById("loginPage").classList.add("hidden"); document.getElementById("mainPage").classList.remove("hidden"); document.getElementById("userArea").innerHTML="مرحباً "+currentUser+" <button onclick='logout()'>تسجيل الخروج</button>"; renderProblems();}
 
-// إضافة المشكلة
+// إضافة مشكلة
 function addProblem(){
     let text=document.getElementById("problemText").value.trim();
     let price=document.getElementById("problemPrice").value.trim();
@@ -146,7 +146,6 @@ function addProblem(){
             document.getElementById("problemYear").value="";
             document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
             document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
-            renderProblems();
         });
     } else { alert("الرجاء ملء جميع الحقول"); }
 }
@@ -173,11 +172,12 @@ function deleteProblem(id){ if(currentUser && currentUser.toLowerCase()=="jin"){
 // حذف حل (Admin)
 function deleteSolution(problemId, solId){ if(currentUser && currentUser.toLowerCase()=="jin"){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
-// عرض كل المشاكل مع الحلول
+// عرض كل المشاكل مع الحلول - **التحديث مباشر لكل المستخدمين**
 function renderProblems(){
     let list=document.getElementById("problemsList");
     list.innerHTML="";
-    db.ref("problems").orderByChild("timestamp").once("value").then(snapshot=>{
+    db.ref("problems").orderByChild("timestamp").on("value", snapshot=>{
+        list.innerHTML="";
         snapshot.forEach(snap=>{
             let p=snap.val();
             let id=snap.key;
@@ -212,6 +212,5 @@ function renderProblems(){
 
 if(currentUser){ showPlatform();}
 </script>
-
 </body>
 </html>
