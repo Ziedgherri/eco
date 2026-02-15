@@ -90,6 +90,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let currentUser = null;
+const adminEmail = "gherrizied@gmail.com"; // حسابك Admin
 
 // ألوان خلفيات عشوائية
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
@@ -131,7 +132,7 @@ const subjectsBySection = {
 function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
 function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
 
-// تسجيل الحساب مع إرسال رسالة تحقق
+// تسجيل الحساب
 function register() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -145,20 +146,15 @@ function register() {
                 alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");
             });
 
-            currentUser = {email: user.email, name: displayName, verified: false};
+            currentUser = {email: user.email, name: displayName, isAdmin: (user.email===adminEmail)};
             localStorage.setItem("currentUser", JSON.stringify(currentUser));
 
-            db.ref("users/" + user.uid).set({
-                name: displayName,
-                email: user.email,
-                verified: false
-            });
         })
         .catch((error) => { alert(error.message); });
     } else { alert("الرجاء إدخال جميع الحقول"); }
 }
 
-// إعادة إرسال رسالة التحقق
+// إعادة إرسال التحقق
 function resendVerification() {
     const user = firebase.auth().currentUser;
     if(user){
@@ -170,24 +166,24 @@ function resendVerification() {
 function login() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
-    if(email && password){
+    const displayName = document.getElementById("displayName").value.trim();
+    if(email && password && displayName){
         firebase.auth().signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
+
             if(!user.emailVerified){
                 alert("يرجى تأكيد بريدك الإلكتروني أولاً!");
                 firebase.auth().signOut();
                 return;
             }
-            db.ref("users/" + user.uid).once("value", snapshot => {
-                const data = snapshot.val();
-                currentUser = {email: user.email, name: data.name, verified: user.emailVerified};
-                localStorage.setItem("currentUser", JSON.stringify(currentUser));
-                showPlatform();
-            });
+
+            currentUser = {email: user.email, name: displayName, isAdmin: (user.email===adminEmail)};
+            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+            showPlatform();
         })
         .catch((error) => { alert(error.message); });
-    } else { alert("الرجاء إدخال البريد الإلكتروني وكلمة المرور"); }
+    } else { alert("الرجاء إدخال جميع الحقول"); }
 }
 
 // تسجيل الخروج
@@ -197,6 +193,9 @@ function logout() {
         location.reload();
     });
 }
+
+// التحقق إذا Admin
+function isAdmin(){ return currentUser && currentUser.isAdmin; }
 
 // عرض الصفحة بعد تسجيل الدخول
 function showPlatform(){
@@ -252,9 +251,9 @@ function addSolution(problemId){
     } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
 }
 
-// حذف مشكلة وحل (Admin)
-function deleteProblem(id){ if(currentUser && currentUser.name.toLowerCase()=="jin"){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
-function deleteSolution(problemId, solId){ if(currentUser && currentUser.name.toLowerCase()=="jin"){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
+// حذف مشكلة وحل (Admin فقط)
+function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
+function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
 // عرض المشاكل
 function renderProblems(){
@@ -270,7 +269,7 @@ function renderProblems(){
                 let solutionColor=getRandomColor();
                 solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}">
                 <b>الحل بواسطة:</b> ${sol.solver} 
-                ${currentUser && currentUser.name.toLowerCase()=="jin"?`<button onclick="deleteSolution('${id}','${solId}')">حذف</button>`:""}<br>
+                ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br>
                 <b>الحل:</b> ${sol.solution}<br>
                 <b>وسيلة التواصل:</b> ${sol.contact}<br>
                 <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
@@ -278,7 +277,7 @@ function renderProblems(){
             let cardColor=getRandomColor();
             list.innerHTML+=`<div class="card" style="background:${cardColor}">
             <b>المشكلة من:</b> ${p.user} 
-            ${currentUser && currentUser.name.toLowerCase()=="jin"?`<button onclick="deleteProblem('${id}')">حذف</button>`:""}<br>
+            ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br>
             <b>الوصف:</b> ${p.text}<br>
             <b>المبلغ المطلوب:</b> ${p.price}<br>
             <b>السنة:</b> ${p.schoolYear || "-"}<br>
