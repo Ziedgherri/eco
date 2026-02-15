@@ -30,11 +30,11 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 <ul>
 <li>يجب استخدام بريدك الإلكتروني الحقيقي لتلقي رسالة التحقق.</li>
 <li>لن تتمكن من استخدام المنصة قبل تأكيد البريد.</li>
-<li>يرجى إدخال اسمك للعرض بحيث يظهر للطلاب الآخرين بدلاً من البريد.</li>
+<li>الاسم الذي تختاره عند إنشاء الحساب سيظل ثابتًا لكل تسجيل دخول.</li>
 <li>يمكنك إعادة إرسال رسالة التحقق إذا لم تصل.</li>
 </ul>
 </div>
-<input id="displayName" placeholder="أدخل اسمك للعرض">
+<input id="displayName" placeholder="أدخل اسمك عند إنشاء الحساب">
 <input id="email" placeholder="أدخل البريد الإلكتروني" type="email">
 <input id="password" placeholder="أدخل كلمة المرور" type="password">
 <button onclick="login()">دخول</button>
@@ -141,14 +141,17 @@ function register() {
         firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
+
+            // حفظ الاسم في Firebase Database
+            db.ref("users/" + user.uid).set({
+                name: displayName,
+                email: user.email
+            });
+
             user.sendEmailVerification()
             .then(() => {
                 alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");
             });
-
-            currentUser = {email: user.email, name: displayName, isAdmin: (user.email===adminEmail)};
-            localStorage.setItem("currentUser", JSON.stringify(currentUser));
-
         })
         .catch((error) => { alert(error.message); });
     } else { alert("الرجاء إدخال جميع الحقول"); }
@@ -166,8 +169,7 @@ function resendVerification() {
 function login() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
-    const displayName = document.getElementById("displayName").value.trim();
-    if(email && password && displayName){
+    if(email && password){
         firebase.auth().signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
@@ -178,9 +180,17 @@ function login() {
                 return;
             }
 
-            currentUser = {email: user.email, name: displayName, isAdmin: (user.email===adminEmail)};
-            localStorage.setItem("currentUser", JSON.stringify(currentUser));
-            showPlatform();
+            // جلب الاسم من Firebase Database
+            db.ref("users/" + user.uid).once("value").then(snapshot => {
+                const data = snapshot.val();
+                currentUser = {
+                    email: user.email,
+                    name: data.name,
+                    isAdmin: (user.email===adminEmail)
+                };
+                localStorage.setItem("currentUser", JSON.stringify(currentUser));
+                showPlatform();
+            });
         })
         .catch((error) => { alert(error.message); });
     } else { alert("الرجاء إدخال جميع الحقول"); }
@@ -291,6 +301,13 @@ function renderProblems(){
             </div>`;
         });
     });
+}
+
+// إذا كان المستخدم مسجل من قبل
+let savedUser = localStorage.getItem("currentUser");
+if(savedUser){
+    currentUser = JSON.parse(savedUser);
+    showPlatform();
 }
 </script>
 </body>
