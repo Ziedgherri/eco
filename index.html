@@ -12,6 +12,8 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 .container{padding:20px;}
 .card{background:white;padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}
 .solutionCard{background:#f0f8ff;padding:10px;margin-top:8px;border-radius:10px;}
+.hidden{display:none;}
+/* ألوان المواد */
 .subject-Math{color:#1f77b4;}
 .subject-Arabic{color:#ff7f0e;}
 .subject-French{color:#2ca02c;}
@@ -24,7 +26,6 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 .subject-Economics{color:#17becf;}
 .subject-Informatics{color:#aec7e8;}
 .subject-Sport{color:#ffbb78;}
-.hidden{display:none;}
 </style>
 </head>
 <body>
@@ -98,15 +99,13 @@ const yearSections = {
 
 const subjectsBySection = {
 "1ère":["Math","Arabic","French","Physics","Chemistry","History","Geography","Biology","Philosophy","Economics","Sport","Informatics"],
-"2ème":{
-"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
+"2ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
 "Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
 "Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
 "Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
 "Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"]
 },
-"3ème":{
-"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
+"3ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
 "Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
 "Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
 "Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
@@ -114,8 +113,7 @@ const subjectsBySection = {
 "Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
 "Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
 },
-"4ème/Bac":{
-"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
+"4ème/Bac":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
 "Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
 "Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
 "Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
@@ -125,7 +123,7 @@ const subjectsBySection = {
 }
 };
 
-// تحديث الشعبة
+// تحديث الشعبة والمواد
 function updateSections(){
 let year=document.getElementById("problemYear").value;
 let sectionSelect=document.getElementById("problemSection");
@@ -134,7 +132,6 @@ if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.in
 updateSubjects();
 }
 
-// تحديث المواد
 function updateSubjects(){
 let year=document.getElementById("problemYear").value;
 let section=document.getElementById("problemSection").value;
@@ -151,54 +148,57 @@ function showPlatform(){document.getElementById("loginPage").classList.add("hidd
 
 // إضافة المشكلة
 function addProblem(){
-    let text = document.getElementById("problemText").value.trim();
-    let price = document.getElementById("problemPrice").value.trim();
-    let year = document.getElementById("problemYear").value;
-    let section = document.getElementById("problemSection").value;
-    let subject = document.getElementById("problemSubject").value;
+    let text=document.getElementById("problemText").value.trim();
+    let price=document.getElementById("problemPrice").value.trim();
+    let year=document.getElementById("problemYear").value;
+    let section=document.getElementById("problemSection").value;
+    let subject=document.getElementById("problemSubject").value;
 
     if(text && price && year && section!=null && subject){
-        let newRef = db.ref("problems").push();
+        let newRef=db.ref("problems").push();
         newRef.set({
-            user: currentUser,
-            text: text,
-            price: price,
-            schoolYear: year,
-            section: section,
-            subject: subject,
-            solutions: {},
-            timestamp: Date.now()
+            user:currentUser,
+            text:text,
+            price:price,
+            schoolYear:year,
+            section:section,
+            subject:subject,
+            solutions:{},
+            timestamp:Date.now()
         }).then(()=>{
-            document.getElementById("problemText").value = "";
-            document.getElementById("problemPrice").value = "";
-            document.getElementById("problemYear").value = "";
-            document.getElementById("problemSection").innerHTML = '<option value="">اختر الشعبة</option>';
-            document.getElementById("problemSubject").innerHTML = '<option value="">اختر المادة</option>';
+            document.getElementById("problemText").value="";
+            document.getElementById("problemPrice").value="";
+            document.getElementById("problemYear").value="";
+            document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
+            document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
             renderProblems();
         });
-    } else {
-        alert("الرجاء ملء جميع الحقول");
-    }
+    } else { alert("الرجاء ملء جميع الحقول"); }
 }
 
 // إضافة حل متعدد
 function addSolution(problemId){
-    let solutionText = document.getElementById("solution"+problemId).value.trim();
-    let contactText = document.getElementById("contact"+problemId).value.trim();
-    let priceText = document.getElementById("price"+problemId).value.trim();
+    let solutionText=document.getElementById("solution"+problemId).value.trim();
+    let contactText=document.getElementById("contact"+problemId).value.trim();
+    let priceText=document.getElementById("price"+problemId).value.trim();
 
     if(solutionText && contactText && priceText){
-        let newSolutionRef = db.ref("problems/"+problemId+"/solutions").push();
+        let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
         newSolutionRef.set({
-            solver: currentUser,
-            solution: solutionText,
-            contact: contactText,
-            price: priceText
+            solver:currentUser,
+            solution:solutionText,
+            contact:contactText,
+            price:priceText
         }).then(()=>{ renderProblems(); });
     } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
 }
 
-// عرض كل المشاكل مع كل الحلول
+// حذف المشكلة (Admin)
+function deleteProblem(id){ if(currentUser=="jin"){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
+// حذف حل (Admin)
+function deleteSolution(problemId, solId){ if(currentUser=="jin"){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
+
+// عرض كل المشاكل مع الحلول
 function renderProblems(){
     let list=document.getElementById("problemsList");
     list.innerHTML="";
@@ -207,23 +207,22 @@ function renderProblems(){
             let p=snap.val();
             let id=snap.key;
             let solutionsHTML="";
-            if(p.solutions){
-                Object.values(p.solutions).forEach(sol=>{
-                    let colorClass = "subject-" + sol.solution.replace(/\s/g,'');
-                    solutionsHTML+=`<div class="solutionCard">
-                    <b>الحل بواسطة:</b> ${sol.solver}<br>
-                    <b>الحل:</b> <span class="subject-${p.subject.replace(/\s/g,'')}">${sol.solution}</span><br>
-                    <b>وسيلة التواصل:</b> ${sol.contact}<br>
-                    <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
-                });
-            }
-            list.innerHTML+=`<div class="card">
-            <b>المشكلة من:</b> ${p.user}<br>
+            if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
+                solutionsHTML+=`<div class="solutionCard subject-${p.subject.replace(/\s/g,'')}">
+                <b>الحل بواسطة:</b> ${sol.solver} 
+                ${currentUser=="jin"?`<button onclick="deleteSolution('${id}','${solId}')">حذف</button>`:""}<br>
+                <b>الحل:</b> ${sol.solution}<br>
+                <b>وسيلة التواصل:</b> ${sol.contact}<br>
+                <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
+            });}
+            list.innerHTML+=`<div class="card subject-${p.subject.replace(/\s/g,'')}">
+            <b>المشكلة من:</b> ${p.user} 
+            ${currentUser=="jin"?`<button onclick="deleteProblem('${id}')">حذف</button>`:""}<br>
             <b>الوصف:</b> ${p.text}<br>
             <b>المبلغ المطلوب:</b> ${p.price}<br>
             <b>السنة:</b> ${p.schoolYear || "-"}<br>
             <b>الشعبة:</b> ${p.section || "-"}<br>
-            <b>المادة:</b> <span class="subject-${p.subject.replace(/\s/g,'')}">${p.subject || "-"}</span><br>
+            <b>المادة:</b> ${p.subject || "-"}<br>
             ${solutionsHTML}
             <input id="solution${id}" placeholder="اكتب الحل">
             <input id="contact${id}" placeholder="وسيلة التواصل">
