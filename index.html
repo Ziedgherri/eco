@@ -76,11 +76,11 @@ const db = firebase.database();
 
 let currentUser = localStorage.getItem("currentUser");
 
-// ألوان خلفيات عشوائية
+// ألوان عشوائية
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
 function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
 
-// الهيكل الأساسي للسنة والشعبة والمواد
+// الهيكل للسنة والشعبة والمواد
 const yearSections = {
 "1ère":[""],
 "2ème":["Eco","Lettres","Info","Science","Sport"],
@@ -113,22 +113,8 @@ const subjectsBySection = {
 }
 };
 
-// تحديث الشعبة والمواد
-function updateSections(){
-let year=document.getElementById("problemYear").value;
-let sectionSelect=document.getElementById("problemSection");
-sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';
-if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});}
-updateSubjects();
-}
-function updateSubjects(){
-let year=document.getElementById("problemYear").value;
-let section=document.getElementById("problemSection").value;
-let subjectSelect=document.getElementById("problemSubject");
-subjectSelect.innerHTML='<option value="">اختر المادة</option>';
-if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}
-else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}
-}
+function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
+function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
 
 // تسجيل الدخول والخروج
 function login(){let name=document.getElementById("username").value.trim(); if(name){localStorage.setItem("currentUser",name); currentUser=name; showPlatform();}}
