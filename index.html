@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>منصة مساعدة التلاميذ</title>
+
 <style>
 body{font-family:Arial;margin:0;background:#f3f4f6;direction:rtl;}
 nav{background:#1e3a8a;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;}
 button{padding:8px 15px;background:#2563eb;border:none;color:white;cursor:pointer;border-radius:20px;margin-top:5px;}
-input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px;border:1px solid #ccc;}
+input, select{width:100%;padding:8px;margin-top:8px;border-radius:10px;border:1px solid #ccc;}
 .container{padding:20px;}
 .card{padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}
 .solutionCard{padding:10px;margin-top:8px;border-radius:10px;}
@@ -32,10 +33,10 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 
 <h2>إضافة مشكلة</h2>
 <input id="problemText" placeholder="اكتب مشكلتك">
-<input id="problemPrice" placeholder="كم المبلغ مقابل الحل؟">
+<input id="problemPrice" placeholder="المبلغ المطلوب">
 
 <select id="problemYear" onchange="updateSections(); updateSubjects()">
-<option value="">اختر السنة الدراسية</option>
+<option value="">اختر السنة</option>
 <option value="1ère">1ère</option>
 <option value="2ème">2ème</option>
 <option value="3ème">3ème</option>
@@ -52,15 +53,16 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 
 <button onclick="addProblem()">إضافة المشكلة</button>
 
-<h2 style="margin-top:40px;">قائمة المشاكل</h2>
+<h2 style="margin-top:40px;">المشاكل</h2>
 <div id="problemsList"></div>
 
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
-// Firebase config
+// Firebase (لا تغيره)
 const firebaseConfig = {
 apiKey: "AIzaSyB4J_b-9NSV_JA678xp8m71nZ2_7I1TKbw",
 authDomain: "emeco2.firebaseapp.com",
@@ -68,149 +70,208 @@ databaseURL: "https://emeco2-default-rtdb.firebaseio.com/",
 projectId: "emeco2",
 storageBucket: "emeco2.firebasestorage.app",
 messagingSenderId: "961569608008",
-appId: "1:961569608008:web:1dc2fa016a1a634e70637d",
-measurementId: "G-12CX368R40"
+appId: "1:961569608008:web:1dc2fa016a1a634e70637d"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let currentUser = localStorage.getItem("currentUser");
 
-// ألوان خلفيات عشوائية
-const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
-function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
+// ألوان عشوائية
+const colors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f97316",
+"#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6",
+"#60a5fa","#34d399","#86efac"];
 
-// الهيكل الأساسي للسنة والشعبة والمواد
-const yearSections = {
-"1ère":[""],
-"2ème":["Eco","Lettres","Info","Science","Sport"],
-"3ème":["Eco","Lettres","Info","Science","Sport","Technique","Math"],
-"4ème/Bac":["Eco","Lettres","Info","Science","Sport","Technique","Math"]
-};
-const subjectsBySection = {
-"1ère":["Math","Arabic","French","Physics","Chemistry","History","Geography","Biology","Philosophy","Economics","Sport","Informatics"],
-"2ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
-"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
-"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
-"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
-"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"]
-},
-"3ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
-"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
-"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
-"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
-"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"],
-"Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
-"Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
-},
-"4ème/Bac":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
-"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
-"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
-"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
-"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"],
-"Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
-"Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
+function randomColor(){
+return colors[Math.floor(Math.random()*colors.length)];
 }
+
+// الشعب
+const yearSections={
+"1ère":[""],
+"2ème":["Eco","Lettres","Science","Sport","Technique","Info"],
+"3ème":["Eco","Lettres","Science","Sport","Technique","Info"],
+"4ème/Bac":["Eco","Lettres","Science","Sport","Technique","Info"]
 };
 
-function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
-function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
+// المواد بدون خلط
+const subjectsBySection={
 
-// تسجيل الدخول والخروج
-function login(){let name=document.getElementById("username").value.trim(); if(name){localStorage.setItem("currentUser",name); currentUser=name; showPlatform();}}
-function logout(){localStorage.removeItem("currentUser"); location.reload();}
-function showPlatform(){document.getElementById("loginPage").classList.add("hidden"); document.getElementById("mainPage").classList.remove("hidden"); document.getElementById("userArea").innerHTML="مرحباً "+currentUser+" <button onclick='logout()'>تسجيل الخروج</button>"; renderProblems();}
+"1ère":[
+"Math","Arabic","French","English","History","Geography"
+],
+
+"2ème":{
+"Eco":["Eco","Gestion","Math","Arabic","French","English","History","Geography"],
+"Lettres":["Arabic","French","English","History","Geography"],
+"Science":["Math","Physics","Chemistry","Biology","Arabic","French","English"],
+"Sport":["Sport","Biology","Arabic","French","English"],
+"Technique":["Math","Physics","Mécanique","Électrique","Arabic","French","English"],
+"Info":["Math","Programmation","Algorithmique","Arabic","French","English"]
+},
+
+"3ème":{
+"Eco":["Eco","Gestion","Math","Arabic","French","English","Philo","History","Geography","Espagnol","Allemand"],
+"Lettres":["Arabic","French","English","Philo","History","Geography","Espagnol","Allemand"],
+"Science":["Math","Physics","Chemistry","Biology","Philo","Arabic","French","English"],
+"Sport":["Sport","Biology","Arabic","French","English"],
+"Technique":["Math","Physics","Mécanique","Électrique","Philo","Arabic","French","English"],
+"Info":["Math","Programmation","Algorithmique","Philo","Arabic","French","English"]
+},
+
+"4ème/Bac":{
+"Eco":["Eco","Gestion","Math","Arabic","French","English","Philo","History","Geography","Espagnol","Allemand"],
+"Lettres":["Arabic","French","English","Philo","History","Geography","Espagnol","Allemand"],
+"Science":["Math","Physics","Chemistry","Biology","Philo","Arabic","French","English"],
+"Sport":["Sport","Biology","Arabic","French","English"],
+"Technique":["Math","Physics","Mécanique","Électrique","Philo","Arabic","French","English"],
+"Info":["Math","Programmation","Algorithmique","Philo","Arabic","French","English"]
+}
+
+};
+
+// تحديث الشعب
+function updateSections(){
+let y=document.getElementById("problemYear").value;
+let s=document.getElementById("problemSection");
+s.innerHTML='<option value="">اختر الشعبة</option>';
+if(yearSections[y]){
+yearSections[y].forEach(sec=>{
+if(sec!=="")
+s.innerHTML+=`<option value="${sec}">${sec}</option>`;
+});
+}
+updateSubjects();
+}
+
+// تحديث المواد
+function updateSubjects(){
+let y=document.getElementById("problemYear").value;
+let s=document.getElementById("problemSection").value;
+let sub=document.getElementById("problemSubject");
+sub.innerHTML='<option value="">اختر المادة</option>';
+
+if(y==="1ère"){
+subjectsBySection["1ère"].forEach(m=>{
+sub.innerHTML+=`<option>${m}</option>`;
+});
+}else if(subjectsBySection[y] && subjectsBySection[y][s]){
+subjectsBySection[y][s].forEach(m=>{
+sub.innerHTML+=`<option>${m}</option>`;
+});
+}
+}
+
+// تسجيل الدخول
+function login(){
+let name=document.getElementById("username").value.trim();
+if(name){
+localStorage.setItem("currentUser",name);
+currentUser=name;
+showPlatform();
+}
+}
+
+function logout(){
+localStorage.removeItem("currentUser");
+location.reload();
+}
+
+function showPlatform(){
+document.getElementById("loginPage").classList.add("hidden");
+document.getElementById("mainPage").classList.remove("hidden");
+document.getElementById("userArea").innerHTML=
+"مرحباً "+currentUser+" <button onclick='logout()'>خروج</button>";
+renderProblems();
+}
 
 // إضافة مشكلة
 function addProblem(){
-    let text=document.getElementById("problemText").value.trim();
-    let price=document.getElementById("problemPrice").value.trim();
-    let year=document.getElementById("problemYear").value;
-    let section=document.getElementById("problemSection").value;
-    let subject=document.getElementById("problemSubject").value;
+let text=document.getElementById("problemText").value.trim();
+let price=document.getElementById("problemPrice").value.trim();
+let year=document.getElementById("problemYear").value;
+let section=document.getElementById("problemSection").value;
+let subject=document.getElementById("problemSubject").value;
 
-    if(text && price && year && section!=null && subject){
-        let newRef=db.ref("problems").push();
-        newRef.set({
-            user:currentUser,
-            text:text,
-            price:price,
-            schoolYear:year,
-            section:section,
-            subject:subject,
-            solutions:{},
-            timestamp:Date.now()
-        }).then(()=>{
-            document.getElementById("problemText").value="";
-            document.getElementById("problemPrice").value="";
-            document.getElementById("problemYear").value="";
-            document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
-            document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
-        });
-    } else { alert("الرجاء ملء جميع الحقول"); }
+if(text && price && year && section && subject){
+let ref=db.ref("problems").push();
+ref.set({
+user:currentUser,
+text,
+price,
+schoolYear:year,
+section,
+subject,
+timestamp:Date.now()
+});
+}
 }
 
-// إضافة حل متعدد
-function addSolution(problemId){
-    let solutionText=document.getElementById("solution"+problemId).value.trim();
-    let contactText=document.getElementById("contact"+problemId).value.trim();
-    let priceText=document.getElementById("price"+problemId).value.trim();
-
-    if(solutionText && contactText && priceText){
-        let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
-        newSolutionRef.set({
-            solver:currentUser,
-            solution:solutionText,
-            contact:contactText,
-            price:priceText
-        }).then(()=>{ renderProblems(); });
-    } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
+// إضافة حل
+function addSolution(id){
+let sol=document.getElementById("sol"+id).value.trim();
+if(sol){
+db.ref("problems/"+id+"/solutions").push({
+solver:currentUser,
+solution:sol
+});
+}
 }
 
-// حذف المشكلة (Admin)
-function deleteProblem(id){ if(currentUser && currentUser.toLowerCase()=="jin"){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
+// حذف مشكلة (Admin)
+function deleteProblem(id){
+if(currentUser && currentUser.toLowerCase()==="jin"){
+db.ref("problems/"+id).remove();
+}
+}
+
 // حذف حل (Admin)
-function deleteSolution(problemId, solId){ if(currentUser && currentUser.toLowerCase()=="jin"){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
-
-// عرض كل المشاكل مع الحلول - **التحديث مباشر لكل المستخدمين**
-function renderProblems(){
-    let list=document.getElementById("problemsList");
-    list.innerHTML="";
-    db.ref("problems").orderByChild("timestamp").on("value", snapshot=>{
-        list.innerHTML="";
-        snapshot.forEach(snap=>{
-            let p=snap.val();
-            let id=snap.key;
-            let solutionsHTML="";
-            if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
-                let solutionColor=getRandomColor();
-                solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}">
-                <b>الحل بواسطة:</b> ${sol.solver} 
-                ${currentUser && currentUser.toLowerCase()=="jin"?`<button onclick="deleteSolution('${id}','${solId}')">حذف</button>`:""}<br>
-                <b>الحل:</b> ${sol.solution}<br>
-                <b>وسيلة التواصل:</b> ${sol.contact}<br>
-                <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
-            });}
-            let cardColor=getRandomColor();
-            list.innerHTML+=`<div class="card" style="background:${cardColor}">
-            <b>المشكلة من:</b> ${p.user} 
-            ${currentUser && currentUser.toLowerCase()=="jin"?`<button onclick="deleteProblem('${id}')">حذف</button>`:""}<br>
-            <b>الوصف:</b> ${p.text}<br>
-            <b>المبلغ المطلوب:</b> ${p.price}<br>
-            <b>السنة:</b> ${p.schoolYear || "-"}<br>
-            <b>الشعبة:</b> ${p.section || "-"}<br>
-            <b>المادة:</b> ${p.subject || "-"}<br>
-            ${solutionsHTML}
-            <input id="solution${id}" placeholder="اكتب الحل">
-            <input id="contact${id}" placeholder="وسيلة التواصل">
-            <input id="price${id}" placeholder="المبلغ مقابل الحل">
-            <button onclick="addSolution('${id}')">إرسال الحل</button>
-            </div>`;
-        });
-    });
+function deleteSolution(pid,sid){
+if(currentUser && currentUser.toLowerCase()==="jin"){
+db.ref("problems/"+pid+"/solutions/"+sid).remove();
+}
 }
 
-if(currentUser){ showPlatform();}
+// عرض مباشر للجميع
+function renderProblems(){
+db.ref("problems").on("value",snap=>{
+let list=document.getElementById("problemsList");
+list.innerHTML="";
+snap.forEach(p=>{
+let data=p.val();
+let id=p.key;
+let bg=randomColor();
+
+let solutionsHTML="";
+if(data.solutions){
+Object.entries(data.solutions).forEach(([sid,s])=>{
+solutionsHTML+=`
+<div class="solutionCard" style="background:${randomColor()}">
+<b>${s.solver}</b>: ${s.solution}
+${currentUser && currentUser.toLowerCase()==="jin"?
+`<button onclick="deleteSolution('${id}','${sid}')">حذف</button>`:""}
+</div>`;
+});
+}
+
+list.innerHTML+=`
+<div class="card" style="background:${bg}">
+<b>${data.user}</b> - ${data.subject}
+${currentUser && currentUser.toLowerCase()==="jin"?
+`<button onclick="deleteProblem('${id}')">حذف</button>`:""}
+<br>${data.text}
+<br>💰 ${data.price}
+${solutionsHTML}
+<input id="sol${id}" placeholder="اكتب الحل">
+<button onclick="addSolution('${id}')">إرسال</button>
+</div>`;
+});
+});
+}
+
+if(currentUser) showPlatform();
+
 </script>
 </body>
 </html>
