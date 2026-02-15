@@ -13,6 +13,7 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 .card{padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}
 .solutionCard{padding:10px;margin-top:8px;border-radius:10px;}
 .hidden{display:none;}
+.tip{background:#fffbcc;border-left:5px solid #f59e0b;padding:10px;margin:10px 0;}
 </style>
 </head>
 <body>
@@ -24,11 +25,21 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 
 <div class="container" id="loginPage">
 <h2>تسجيل الدخول / إنشاء حساب</h2>
+<div class="tip">
+<b>تلميحات مهمة:</b> 
+<ul>
+<li>يجب استخدام بريدك الإلكتروني الحقيقي لتلقي رسالة التحقق.</li>
+<li>لن تتمكن من استخدام المنصة قبل تأكيد البريد.</li>
+<li>يرجى إدخال اسمك للعرض بحيث يظهر للطلاب الآخرين بدلاً من البريد.</li>
+<li>يمكنك إعادة إرسال رسالة التحقق إذا لم تصل.</li>
+</ul>
+</div>
 <input id="displayName" placeholder="أدخل اسمك للعرض">
 <input id="email" placeholder="أدخل البريد الإلكتروني" type="email">
 <input id="password" placeholder="أدخل كلمة المرور" type="password">
 <button onclick="login()">دخول</button>
 <button onclick="register()">إنشاء حساب</button>
+<button onclick="resendVerification()">إعادة إرسال التحقق</button>
 </div>
 
 <div class="container hidden" id="mainPage">
@@ -120,7 +131,7 @@ const subjectsBySection = {
 function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
 function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
 
-// تسجيل الحساب
+// تسجيل الحساب مع إرسال رسالة تحقق
 function register() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -129,18 +140,30 @@ function register() {
         firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-            currentUser = {email: user.email, name: displayName};
+            user.sendEmailVerification()
+            .then(() => {
+                alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");
+            });
+
+            currentUser = {email: user.email, name: displayName, verified: false};
             localStorage.setItem("currentUser", JSON.stringify(currentUser));
 
             db.ref("users/" + user.uid).set({
                 name: displayName,
-                email: user.email
+                email: user.email,
+                verified: false
             });
-
-            showPlatform();
         })
         .catch((error) => { alert(error.message); });
     } else { alert("الرجاء إدخال جميع الحقول"); }
+}
+
+// إعادة إرسال رسالة التحقق
+function resendVerification() {
+    const user = firebase.auth().currentUser;
+    if(user){
+        user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});
+    } else { alert("يجب تسجيل الدخول أولاً"); }
 }
 
 // تسجيل الدخول
@@ -151,9 +174,14 @@ function login() {
         firebase.auth().signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
+            if(!user.emailVerified){
+                alert("يرجى تأكيد بريدك الإلكتروني أولاً!");
+                firebase.auth().signOut();
+                return;
+            }
             db.ref("users/" + user.uid).once("value", snapshot => {
                 const data = snapshot.val();
-                currentUser = {email: user.email, name: data.name};
+                currentUser = {email: user.email, name: data.name, verified: user.emailVerified};
                 localStorage.setItem("currentUser", JSON.stringify(currentUser));
                 showPlatform();
             });
@@ -162,6 +190,7 @@ function login() {
     } else { alert("الرجاء إدخال البريد الإلكتروني وكلمة المرور"); }
 }
 
+// تسجيل الخروج
 function logout() {
     firebase.auth().signOut().then(() => {
         localStorage.removeItem("currentUser");
@@ -264,18 +293,6 @@ function renderProblems(){
         });
     });
 }
-
-// استعادة الجلسة عند فتح الموقع
-firebase.auth().onAuthStateChanged((user)=>{
-    if(user){
-        db.ref("users/" + user.uid).once("value", snapshot => {
-            const data = snapshot.val();
-            currentUser = {email: user.email, name: data.name};
-            localStorage.setItem("currentUser", JSON.stringify(currentUser));
-            showPlatform();
-        });
-    }
-});
 </script>
 </body>
 </html>
