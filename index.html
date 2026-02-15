@@ -90,11 +90,28 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let currentUser = null;
-const adminEmail = "gherrizied@gmail.com"; // حسابك Admin
+const adminEmail = "gherrizied@gmail.com"; // حساب Admin
 
 // ألوان خلفيات عشوائية
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
 function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
+
+// دالة لحساب الوقت منذ النشر
+function timeSince(timestamp){
+    const now = Date.now();
+    const seconds = Math.floor((now - timestamp)/1000);
+    if(seconds < 60) return `${seconds} ثانية مضت`;
+    const minutes = Math.floor(seconds/60);
+    if(minutes < 60) return `${minutes} دقيقة مضت`;
+    const hours = Math.floor(minutes/60);
+    if(hours < 24) return `${hours} ساعة مضت`;
+    const days = Math.floor(hours/24);
+    if(days < 30) return `${days} يوم مضى`;
+    const months = Math.floor(days/30);
+    if(months < 12) return `${months} شهر مضى`;
+    const years = Math.floor(months/12);
+    return `${years} سنة مضت`;
+}
 
 // الهيكل الأساسي للسنة والشعبة والمواد
 const yearSections = {
@@ -204,7 +221,7 @@ function logout() {
     });
 }
 
-// التحقق إذا Admin
+// إذا كان المستخدم Admin
 function isAdmin(){ return currentUser && currentUser.isAdmin; }
 
 // عرض الصفحة بعد تسجيل الدخول
@@ -286,7 +303,7 @@ function renderProblems(){
             });}
             let cardColor=getRandomColor();
             list.innerHTML+=`<div class="card" style="background:${cardColor}">
-            <b>المشكلة من:</b> ${p.user} 
+            <b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) 
             ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br>
             <b>الوصف:</b> ${p.text}<br>
             <b>المبلغ المطلوب:</b> ${p.price}<br>
