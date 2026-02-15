@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>منصة مساعدة التلاميذ</title>
+<title>منصة مساعدة التلاميذ - النسخة المحسنة</title>
 <style>
 body{font-family:Arial;margin:0;background:#f3f4f6;direction:rtl;}
 nav{background:#1e3a8a;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;}
@@ -14,6 +14,7 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 .solutionCard{padding:10px;margin-top:8px;border-radius:10px;}
 .hidden{display:none;}
 .tip{background:#fffbcc;border-left:5px solid #f59e0b;padding:10px;margin:10px 0;}
+.filter{margin:10px 0;}
 </style>
 </head>
 <body>
@@ -28,9 +29,8 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 <div class="tip">
 <b>تلميحات مهمة:</b> 
 <ul>
-<li>يجب استخدام بريدك الإلكتروني الحقيقي لتلقي رسالة التحقق.</li>
-<li>لن تتمكن من استخدام المنصة قبل تأكيد البريد.</li>
-<li>الاسم الذي تختاره عند إنشاء الحساب سيظل ثابتًا لكل تسجيل دخول.</li>
+<li>استخدم بريدك الإلكتروني الحقيقي لتلقي رسالة التحقق.</li>
+<li>الاسم الذي تختاره سيظل ثابتًا لكل تسجيل دخول.</li>
 <li>يمكنك إعادة إرسال رسالة التحقق إذا لم تصل.</li>
 </ul>
 </div>
@@ -66,7 +66,30 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 
 <button onclick="addProblem()">إضافة المشكلة</button>
 
-<h2 style="margin-top:40px;">قائمة المشاكل</h2>
+<h2 style="margin-top:20px;">فلترة وبحث</h2>
+<div class="filter">
+<input id="searchInput" placeholder="ابحث في المشاكل" oninput="renderProblems()">
+<select id="filterYear" onchange="renderProblems()">
+<option value="">السنة الكل</option>
+<option value="1ère">1ère</option>
+<option value="2ème">2ème</option>
+<option value="3ème">3ème</option>
+<option value="4ème/Bac">4ème/Bac</option>
+</select>
+<select id="filterSection" onchange="renderProblems()">
+<option value="">الشعبة الكل</option>
+</select>
+<select id="filterSubject" onchange="renderProblems()">
+<option value="">المادة الكل</option>
+</select>
+<select id="sortProblems" onchange="renderProblems()">
+<option value="newest">الأحدث أولاً</option>
+<option value="priceHigh">الأعلى مبلغ أولاً</option>
+<option value="priceLow">الأقل مبلغ أولاً</option>
+</select>
+</div>
+
+<h2 style="margin-top:20px;">قائمة المشاكل</h2>
 <div id="problemsList"></div>
 
 </div>
@@ -92,11 +115,11 @@ const db = firebase.database();
 let currentUser = null;
 const adminEmail = "gherrizied@gmail.com"; // حساب Admin
 
-// ألوان خلفيات عشوائية
+// ألوان الخلفيات
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
 function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
 
-// دالة لحساب الوقت منذ النشر
+// دالة الوقت منذ النشر
 function timeSince(timestamp){
     const now = Date.now();
     const seconds = Math.floor((now - timestamp)/1000);
@@ -146,6 +169,7 @@ const subjectsBySection = {
 }
 };
 
+// تحديث الشعبة والمواد
 function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
 function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
 
@@ -158,17 +182,8 @@ function register() {
         firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-
-            // حفظ الاسم في Firebase Database
-            db.ref("users/" + user.uid).set({
-                name: displayName,
-                email: user.email
-            });
-
-            user.sendEmailVerification()
-            .then(() => {
-                alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");
-            });
+            db.ref("users/" + user.uid).set({name: displayName,email: user.email});
+            user.sendEmailVerification().then(()=>{alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");});
         })
         .catch((error) => { alert(error.message); });
     } else { alert("الرجاء إدخال جميع الحقول"); }
@@ -177,9 +192,8 @@ function register() {
 // إعادة إرسال التحقق
 function resendVerification() {
     const user = firebase.auth().currentUser;
-    if(user){
-        user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});
-    } else { alert("يجب تسجيل الدخول أولاً"); }
+    if(user){user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});} 
+    else { alert("يجب تسجيل الدخول أولاً"); }
 }
 
 // تسجيل الدخول
@@ -190,21 +204,10 @@ function login() {
         firebase.auth().signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-
-            if(!user.emailVerified){
-                alert("يرجى تأكيد بريدك الإلكتروني أولاً!");
-                firebase.auth().signOut();
-                return;
-            }
-
-            // جلب الاسم من Firebase Database
+            if(!user.emailVerified){alert("يرجى تأكيد بريدك الإلكتروني أولاً!");firebase.auth().signOut();return;}
             db.ref("users/" + user.uid).once("value").then(snapshot => {
                 const data = snapshot.val();
-                currentUser = {
-                    email: user.email,
-                    name: data.name,
-                    isAdmin: (user.email===adminEmail)
-                };
+                currentUser = {email: user.email,name: data.name,isAdmin:(user.email===adminEmail)};
                 localStorage.setItem("currentUser", JSON.stringify(currentUser));
                 showPlatform();
             });
@@ -214,17 +217,12 @@ function login() {
 }
 
 // تسجيل الخروج
-function logout() {
-    firebase.auth().signOut().then(() => {
-        localStorage.removeItem("currentUser");
-        location.reload();
-    });
-}
+function logout() {firebase.auth().signOut().then(()=>{localStorage.removeItem("currentUser");location.reload();});}
 
 // إذا كان المستخدم Admin
 function isAdmin(){ return currentUser && currentUser.isAdmin; }
 
-// عرض الصفحة بعد تسجيل الدخول
+// عرض الصفحة
 function showPlatform(){
     document.getElementById("loginPage").classList.add("hidden");
     document.getElementById("mainPage").classList.remove("hidden");
@@ -239,25 +237,10 @@ function addProblem(){
     let year=document.getElementById("problemYear").value;
     let section=document.getElementById("problemSection").value;
     let subject=document.getElementById("problemSubject").value;
-
     if(text && price && year && section!=null && subject){
         let newRef=db.ref("problems").push();
-        newRef.set({
-            user: currentUser.name,
-            text:text,
-            price:price,
-            schoolYear:year,
-            section:section,
-            subject:subject,
-            solutions:{},
-            timestamp:Date.now()
-        }).then(()=>{
-            document.getElementById("problemText").value="";
-            document.getElementById("problemPrice").value="";
-            document.getElementById("problemYear").value="";
-            document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
-            document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
-        });
+        newRef.set({user: currentUser.name,text:text,price:price,schoolYear:year,section:section,subject:subject,solutions:{},timestamp:Date.now()})
+        .then(()=>{document.getElementById("problemText").value="";document.getElementById("problemPrice").value="";document.getElementById("problemYear").value="";document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';});
     } else { alert("الرجاء ملء جميع الحقول"); }
 }
 
@@ -266,66 +249,92 @@ function addSolution(problemId){
     let solutionText=document.getElementById("solution"+problemId).value.trim();
     let contactText=document.getElementById("contact"+problemId).value.trim();
     let priceText=document.getElementById("price"+problemId).value.trim();
-
     if(solutionText && contactText && priceText){
         let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
-        newSolutionRef.set({
-            solver:currentUser.name,
-            solution:solutionText,
-            contact:contactText,
-            price:priceText
-        }).then(()=>{ renderProblems(); });
+        newSolutionRef.set({solver:currentUser.name,solution:solutionText,contact:contactText,price:priceText})
+        .then(()=>{ renderProblems(); });
     } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
 }
 
-// حذف مشكلة وحل (Admin فقط)
+// حذف أو تعديل
 function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
 function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
-// عرض المشاكل
+// تقييم الحلول
+function rateSolution(problemId, solId, rate){
+    db.ref("problems/"+problemId+"/solutions/"+solId+"/ratings/"+currentUser.name).set(rate);
+}
+
+// عرض المشاكل مع الفلتر والبحث
 function renderProblems(){
     let list=document.getElementById("problemsList");
     list.innerHTML="";
-    db.ref("problems").orderByChild("timestamp").on("value", snapshot=>{
-        list.innerHTML="";
-        snapshot.forEach(snap=>{
-            let p=snap.val();
-            let id=snap.key;
+    let search = document.getElementById("searchInput").value.toLowerCase();
+    let filterYear = document.getElementById("filterYear").value;
+    let filterSection = document.getElementById("filterSection").value;
+    let filterSubject = document.getElementById("filterSubject").value;
+    let sortBy = document.getElementById("sortProblems").value;
+
+    db.ref("problems").once("value").then(snapshot=>{
+        let problems = [];
+        snapshot.forEach(snap=>{problems.push({id:snap.key,...snap.val()});});
+
+        // فلترة وبحث
+        problems = problems.filter(p=>{
+            return (!filterYear || p.schoolYear===filterYear) &&
+                   (!filterSection || p.section===filterSection) &&
+                   (!filterSubject || p.subject===filterSubject) &&
+                   (!search || p.text.toLowerCase().includes(search) || p.user.toLowerCase().includes(search));
+        });
+
+        // فرز
+        if(sortBy==="newest"){problems.sort((a,b)=>b.timestamp - a.timestamp);}
+        else if(sortBy==="priceHigh"){problems.sort((a,b)=>b.price - a.price);}
+        else if(sortBy==="priceLow"){problems.sort((a,b)=>a.price - b.price);}
+
+        problems.forEach(p=>{
             let solutionsHTML="";
             if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
                 let solutionColor=getRandomColor();
+                let ratings = sol.ratings || {};
+                let total = Object.values(ratings).reduce((a,b)=>a+b,0);
+                let count = Object.values(ratings).length;
+                let avg = count?Math.round(total/count):0;
                 solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}">
                 <b>الحل بواسطة:</b> ${sol.solver} 
-                ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br>
+                ${isAdmin()?`<button onclick="deleteSolution('${p.id}','${solId}')">حذف</button>`:""}<br>
                 <b>الحل:</b> ${sol.solution}<br>
                 <b>وسيلة التواصل:</b> ${sol.contact}<br>
-                <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
+                <b>المبلغ مقابل الحل:</b> ${sol.price}<br>
+                <b>التقييم:</b> ${avg} / 5 
+                <button onclick="rateSolution('${p.id}','${solId}',1)">👍</button>
+                <button onclick="rateSolution('${p.id}','${solId}',-1)">👎</button>
+                <br>${timeSince(p.timestamp)}
+                </div>`;
             });}
             let cardColor=getRandomColor();
             list.innerHTML+=`<div class="card" style="background:${cardColor}">
-            <b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) 
-            ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br>
+            <b>المشكلة من:</b> ${p.user} 
+            ${isAdmin()?`<button onclick="deleteProblem('${p.id}')">حذف</button>`:""}<br>
             <b>الوصف:</b> ${p.text}<br>
             <b>المبلغ المطلوب:</b> ${p.price}<br>
             <b>السنة:</b> ${p.schoolYear || "-"}<br>
             <b>الشعبة:</b> ${p.section || "-"}<br>
             <b>المادة:</b> ${p.subject || "-"}<br>
             ${solutionsHTML}
-            <input id="solution${id}" placeholder="اكتب الحل">
-            <input id="contact${id}" placeholder="وسيلة التواصل">
-            <input id="price${id}" placeholder="المبلغ مقابل الحل">
-            <button onclick="addSolution('${id}')">إرسال الحل</button>
+            <input id="solution${p.id}" placeholder="اكتب الحل">
+            <input id="contact${p.id}" placeholder="وسيلة التواصل">
+            <input id="price${p.id}" placeholder="المبلغ مقابل الحل">
+            <button onclick="addSolution('${p.id}')">إرسال الحل</button>
+            <br><small>${timeSince(p.timestamp)}</small>
             </div>`;
         });
     });
 }
 
-// إذا كان المستخدم مسجل من قبل
+// تحميل الصفحة إذا كان هناك مستخدم مسجل
 let savedUser = localStorage.getItem("currentUser");
-if(savedUser){
-    currentUser = JSON.parse(savedUser);
-    showPlatform();
-}
+if(savedUser){currentUser = JSON.parse(savedUser); showPlatform();}
 </script>
 </body>
 </html>
