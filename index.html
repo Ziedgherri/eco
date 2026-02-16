@@ -6,25 +6,14 @@
 <title>منصة مساعدة التلاميذ</title>
 <style>
 body{font-family:Arial;margin:0;background:#f3f4f6;direction:rtl;}
-nav{background:#1e3a8a;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;position:relative;}
+nav{background:#1e3a8a;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;}
 button{padding:8px 15px;background:#2563eb;border:none;color:white;cursor:pointer;border-radius:20px;margin-top:5px;}
 input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px;border:1px solid #ccc;}
 .container{padding:20px;}
 .card{padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}
-.solutionCard{padding:10px;margin-top:8px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+.solutionCard{padding:10px;margin-top:8px;border-radius:10px;}
 .hidden{display:none;}
 .tip{background:#fffbcc;border-left:5px solid #f59e0b;padding:10px;margin:10px 0;}
-.chatSidebar{position:fixed;top:0;right:-300px;width:300px;height:100%;background:white;box-shadow:-4px 0 10px rgba(0,0,0,0.2);transition:0.3s;overflow-y:auto;z-index:1000;padding:10px;}
-.chatSidebar.show{right:0;}
-.chatSidebar h3{text-align:center;margin-bottom:10px;}
-.chatUser{padding:10px;border-bottom:1px solid #ddd;cursor:pointer;}
-.chatUser:hover{background:#f0f0f0;}
-#chatBox{position:fixed;bottom:20px;right:20px;width:300px;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.2);border-radius:10px;display:none;flex-direction:column;height:400px;z-index:1001;}
-#chatHeader{background:#1e3a8a;color:white;padding:10px;border-top-left-radius:10px;border-top-right-radius:10px;display:flex;justify-content:space-between;align-items:center;}
-#chatMessages{flex:1;padding:10px;overflow-y:auto;}
-#chatInputArea{display:flex;border-top:1px solid #ccc;}
-#chatInputArea input{flex:1;padding:8px;border:none;border-radius:0;}
-#chatInputArea button{padding:8px 15px;border:none;background:#2563eb;color:white;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -32,7 +21,6 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 <nav>
 <h2>منصة مساعدة التلاميذ</h2>
 <div id="userArea"></div>
-<button onclick="toggleChatSidebar()">💬 الرسائل</button>
 </nav>
 
 <div class="container" id="loginPage">
@@ -83,24 +71,20 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 
 </div>
 
-<!-- Chat Sidebar -->
-<div class="chatSidebar" id="chatSidebar">
-<h3>المحادثات</h3>
-<div id="chatUsersList"></div>
+<!-- Private Messaging Sidebar -->
+<div id="dmSidebar" class="hidden" style="position:fixed;top:0;right:0;width:50%;height:100%;background:white;box-shadow:-4px 0 8px rgba(0,0,0,0.1);overflow:auto;z-index:9999;transition:transform 0.3s;transform:translateX(100%);">
+    <div style="padding:10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ccc;">
+        <h3>الرسائل الخاصة</h3>
+        <button onclick="closeDM()">إغلاق</button>
+    </div>
+    <div style="display:flex;height:calc(100% - 50px);">
+        <div id="dmUsersList" style="width:35%;border-right:1px solid #ccc;overflow:auto;"></div>
+        <div id="dmChatArea" style="width:65%;padding:10px;display:flex;flex-direction:column;justify-content:flex-end;overflow:auto;"></div>
+    </div>
 </div>
 
-<!-- Chat Box -->
-<div id="chatBox">
-<div id="chatHeader">
-<span id="chatWith"></span>
-<button onclick="closeChat()">X</button>
-</div>
-<div id="chatMessages"></div>
-<div id="chatInputArea">
-<input id="chatInput" placeholder="اكتب رسالتك">
-<button onclick="sendMessage()">إرسال</button>
-</div>
-</div>
+<!-- DM Button -->
+<button id="openDMBtn" style="position:fixed;bottom:20px;left:20px;background:#2563eb;color:white;padding:10px 15px;border-radius:50px;z-index:1000;" onclick="openDM()">الرسائل الخاصة</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -121,95 +105,312 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let currentUser = null;
-const adminEmail = "gherrizied@gmail.com";
+const adminEmail = "gherrizied@gmail.com"; // حساب Admin
 
-// --- ORIGINAL FUNCTIONS KEPT COMPLETELY ---
-// register, login, resendVerification, logout, addProblem, addSolution, deleteProblem, deleteSolution, renderProblems, updateSections, updateSubjects, timeSince, cardColors, getRandomColor
-// Everything stays exactly as you sent, nothing changed
+// ألوان خلفيات عشوائية
+const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
+function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
 
-// --- MESSAGING SYSTEM ADDED BELOW ---
-let currentChatUser = null;
-
-function toggleChatSidebar(){
-    document.getElementById("chatSidebar").classList.toggle("show");
-    loadChatUsers();
+// دالة لحساب الوقت منذ النشر
+function timeSince(timestamp){
+    const now = Date.now();
+    const seconds = Math.floor((now - timestamp)/1000);
+    if(seconds < 60) return `${seconds} ثانية مضت`;
+    const minutes = Math.floor(seconds/60);
+    if(minutes < 60) return `${minutes} دقيقة مضت`;
+    const hours = Math.floor(minutes/60);
+    if(hours < 24) return `${hours} ساعة مضت`;
+    const days = Math.floor(hours/24);
+    if(days < 30) return `${days} يوم مضى`;
+    const months = Math.floor(days/30);
+    if(months < 12) return `${months} شهر مضى`;
+    const years = Math.floor(months/12);
+    return `${years} سنة مضت`;
 }
 
-function loadChatUsers(){
-    if(!currentUser) return;
-    const listDiv = document.getElementById("chatUsersList");
-    listDiv.innerHTML="";
-    db.ref("messagesIndex/"+currentUser.uid).once("value").then(snap=>{
-        if(!snap.val()) return;
-        Object.keys(snap.val()).forEach(uid=>{
-            db.ref("users/"+uid+"/name").once("value").then(nameSnap=>{
-                const name = nameSnap.val();
-                const userDiv = document.createElement("div");
-                userDiv.className="chatUser";
-                userDiv.innerText=name;
-                userDiv.onclick=()=>{openChat(uid)};
-                listDiv.appendChild(userDiv);
+// الهيكل الأساسي للسنة والشعبة والمواد
+const yearSections = {
+"1ère":[""],
+"2ème":["Eco","Lettres","Info","Science","Sport"],
+"3ème":["Eco","Lettres","Info","Science","Sport","Technique","Math"],
+"4ème/Bac":["Eco","Lettres","Info","Science","Sport","Technique","Math"]
+};
+const subjectsBySection = {
+"1ère":["Math","Arabic","French","Physics","Chemistry","History","Geography","Biology","Philosophy","Economics","Sport","Informatics"],
+"2ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
+"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
+"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
+"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
+"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"]
+},
+"3ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
+"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
+"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
+"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
+"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"],
+"Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
+"Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
+},
+"4ème/Bac":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
+"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
+"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
+"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
+"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"],
+"Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
+"Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
+}
+};
+
+function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
+function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
+
+// تسجيل الحساب
+function register() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const displayName = document.getElementById("displayName").value.trim();
+    if(email && password && displayName){
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+
+            // حفظ الاسم في Firebase Database
+            db.ref("users/" + user.uid).set({
+                name: displayName,
+                email: user.email
             });
-        });
+
+            user.sendEmailVerification()
+            .then(() => {
+                alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");
+            });
+        })
+        .catch((error) => { alert(error.message); });
+    } else { alert("الرجاء إدخال جميع الحقول"); }
+}
+
+// إعادة إرسال التحقق
+function resendVerification() {
+    const user = firebase.auth().currentUser;
+    if(user){
+        user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});
+    } else { alert("يجب تسجيل الدخول أولاً"); }
+}
+
+// تسجيل الدخول
+function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if(email && password){
+        firebase.auth().signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+
+            if(!user.emailVerified){
+                alert("يرجى تأكيد بريدك الإلكتروني أولاً!");
+                firebase.auth().signOut();
+                return;
+            }
+
+            // جلب الاسم من Firebase Database
+            db.ref("users/" + user.uid).once("value").then(snapshot => {
+                const data = snapshot.val();
+                currentUser = {
+                    email: user.email,
+                    name: data.name,
+                    isAdmin: (user.email===adminEmail)
+                };
+                localStorage.setItem("currentUser", JSON.stringify(currentUser));
+                showPlatform();
+            });
+        })
+        .catch((error) => { alert(error.message); });
+    } else { alert("الرجاء إدخال جميع الحقول"); }
+}
+
+// تسجيل الخروج
+function logout() {
+    firebase.auth().signOut().then(() => {
+        localStorage.removeItem("currentUser");
+        location.reload();
     });
 }
 
-function openChat(otherUserId){
-    currentChatUser = otherUserId;
-    document.getElementById("chatBox").style.display="flex";
-    db.ref("users/"+otherUserId+"/name").once("value").then(snap=>{
-        document.getElementById("chatWith").innerText="المحادثة مع: "+snap.val();
-    });
-    listenMessages();
+// إذا كان المستخدم Admin
+function isAdmin(){ return currentUser && currentUser.isAdmin; }
+
+// عرض الصفحة بعد تسجيل الدخول
+function showPlatform(){
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("mainPage").classList.remove("hidden");
+    document.getElementById("userArea").innerHTML="مرحباً "+currentUser.name+" <button onclick='logout()'>تسجيل الخروج</button>";
+    renderProblems();
 }
 
-function closeChat(){
-    document.getElementById("chatBox").style.display="none";
-    document.getElementById("chatMessages").innerHTML="";
-    currentChatUser=null;
+// إضافة مشكلة
+function addProblem(){
+    let text=document.getElementById("problemText").value.trim();
+    let price=document.getElementById("problemPrice").value.trim();
+    let year=document.getElementById("problemYear").value;
+    let section=document.getElementById("problemSection").value;
+    let subject=document.getElementById("problemSubject").value;
+
+    if(text && price && year && section!=null && subject){
+        let newRef=db.ref("problems").push();
+        newRef.set({
+            user: currentUser.name,
+            text:text,
+            price:price,
+            schoolYear:year,
+            section:section,
+            subject:subject,
+            solutions:{},
+            timestamp:Date.now()
+        }).then(()=>{ document.getElementById("problemText").value=""; document.getElementById("problemPrice").value=""; document.getElementById("problemYear").value=""; document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>'; document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>'; });
+    } else { alert("الرجاء ملء جميع الحقول"); }
 }
 
-function sendMessage(){
-    let msg = document.getElementById("chatInput").value.trim();
-    if(msg && currentChatUser){
-        let chatId = getChatId(currentUser.uid, currentChatUser);
-        let chatRef = db.ref("chats/"+chatId).push();
-        chatRef.set({sender: currentUser.name, text: msg, timestamp: Date.now()});
-        db.ref("messagesIndex/"+currentUser.uid+"/"+currentChatUser).set(true);
-        db.ref("messagesIndex/"+currentChatUser+"/"+currentUser.uid).set(true);
-        document.getElementById("chatInput").value="";
-    }
+// إضافة حل
+function addSolution(problemId){
+    let solutionText=document.getElementById("solution"+problemId).value.trim();
+    let contactText=document.getElementById("contact"+problemId).value.trim();
+    let priceText=document.getElementById("price"+problemId).value.trim();
+
+    if(solutionText && contactText && priceText){
+        let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
+        newSolutionRef.set({
+            solver:currentUser.name,
+            solution:solutionText,
+            contact:contactText,
+            price:priceText
+        }).then(()=>{ renderProblems(); });
+    } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
 }
 
-function listenMessages(){
-    let chatId = getChatId(currentUser.uid, currentChatUser);
-    let msgDiv = document.getElementById("chatMessages");
-    db.ref("chats/"+chatId).on("value", snapshot=>{
-        msgDiv.innerHTML="";
+// حذف مشكلة وحل (Admin فقط)
+function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
+function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
+
+// عرض المشاكل
+function renderProblems(){
+    let list=document.getElementById("problemsList");
+    list.innerHTML="";
+    db.ref("problems").orderByChild("timestamp").on("value", snapshot=>{
+        list.innerHTML="";
         snapshot.forEach(snap=>{
-            let m = snap.val();
-            msgDiv.innerHTML+=`<div><b>${m.sender}:</b> ${m.text}</div>`;
+            let p=snap.val();
+            let id=snap.key;
+            let solutionsHTML="";
+            if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
+                let solutionColor=getRandomColor();
+                solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}"><b>الحل بواسطة:</b> ${sol.solver} ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br><b>الحل:</b> ${sol.solution}<br><b>وسيلة التواصل:</b> ${sol.contact}<br><b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
+            });}
+            let cardColor=getRandomColor();
+            list.innerHTML+=`<div class="card" style="background:${cardColor}"><b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br><b>الوصف:</b> ${p.text}<br><b>المبلغ المطلوب:</b> ${p.price}<br><b>السنة:</b> ${p.schoolYear || "-"}<br><b>الشعبة:</b> ${p.section || "-"}<br><b>المادة:</b> ${p.subject || "-"}<br>${solutionsHTML}<input id="solution${id}" placeholder="اكتب الحل"><input id="contact${id}" placeholder="وسيلة التواصل"><input id="price${id}" placeholder="المبلغ مقابل الحل"><button onclick="addSolution('${id}')">إرسال الحل</button></div>`;
         });
-        msgDiv.scrollTop = msgDiv.scrollHeight;
     });
 }
 
-function getChatId(uid1,uid2){return [uid1,uid2].sort().join("_");}
-
-function openChatWithName(name){
-    db.ref("users").orderByChild("name").equalTo(name).once("value").then(snap=>{
-        if(snap.exists()){
-            let uid = Object.keys(snap.val())[0];
-            openChat(uid);
-        } else { alert("المستخدم غير موجود"); }
-    });
-}
-
-// On load, check if user saved
+// إذا كان المستخدم مسجل من قبل
 let savedUser = localStorage.getItem("currentUser");
 if(savedUser){
     currentUser = JSON.parse(savedUser);
     showPlatform();
+}
+
+/* ------------------ Private Messaging ------------------ */
+const dmRef = db.ref("privateMessages"); // Firebase node for private messages
+let currentChatUser = null;
+
+function openDM() {
+    document.getElementById("dmSidebar").classList.remove("hidden");
+    document.getElementById("dmSidebar").style.transform = "translateX(0)";
+    loadDMUsers();
+}
+
+function closeDM() {
+    document.getElementById("dmSidebar").style.transform = "translateX(100%)";
+}
+
+function loadDMUsers() {
+    const listDiv = document.getElementById("dmUsersList");
+    listDiv.innerHTML = "";
+    dmRef.once("value").then(snapshot => {
+        let usersSet = new Set();
+        snapshot.forEach(snap => {
+            const msg = snap.val();
+            if(msg.from === currentUser.name) usersSet.add(msg.to);
+            if(msg.to === currentUser.name) usersSet.add(msg.from);
+        });
+        usersSet.forEach(user => {
+            let btn = document.createElement("button");
+            btn.style.display="block";
+            btn.style.width="100%";
+            btn.style.padding="10px";
+            btn.style.margin="5px 0";
+            btn.style.textAlign="right";
+            btn.innerText = user;
+            btn.onclick = ()=> openChat(user);
+            listDiv.appendChild(btn);
+        });
+    });
+}
+
+function openChat(user) {
+    currentChatUser = user;
+    const chatDiv = document.getElementById("dmChatArea");
+    chatDiv.innerHTML = "";
+    
+    const inputDiv = document.createElement("div");
+    inputDiv.style.display="flex";
+    inputDiv.style.marginTop="auto";
+
+    const msgInput = document.createElement("input");
+    msgInput.style.flex="1";
+    msgInput.style.padding="8px";
+    msgInput.placeholder="اكتب رسالتك هنا...";
+    msgInput.id = "dmMessageInput";
+
+    const sendBtn = document.createElement("button");
+    sendBtn.innerText="إرسال";
+    sendBtn.onclick = ()=> sendDM();
+
+    inputDiv.appendChild(msgInput);
+    inputDiv.appendChild(sendBtn);
+    chatDiv.appendChild(inputDiv);
+
+    dmRef.orderByChild("timestamp").on("value", snapshot => {
+        chatDiv.innerHTML = "";
+        snapshot.forEach(snap=>{
+            const msg = snap.val();
+            if((msg.from===currentUser.name && msg.to===user) || (msg.to===currentUser.name && msg.from===user)){
+                let div = document.createElement("div");
+                div.style.background = (msg.from===currentUser.name) ? "#60a5fa" : "#f3f4f6";
+                div.style.color = (msg.from===currentUser.name) ? "white":"black";
+                div.style.padding="8px";
+                div.style.margin="5px 0";
+                div.style.borderRadius="10px";
+                div.innerText = `${msg.from}: ${msg.text}`;
+                chatDiv.appendChild(div);
+            }
+        });
+        chatDiv.appendChild(inputDiv);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
+}
+
+function sendDM() {
+    const input = document.getElementById("dmMessageInput");
+    const text = input.value.trim();
+    if(currentChatUser && text){
+        dmRef.push({
+            from: currentUser.name,
+            to: currentChatUser,
+            text:text,
+            timestamp:Date.now()
+        });
+        input.value="";
+    }
 }
 </script>
 </body>
