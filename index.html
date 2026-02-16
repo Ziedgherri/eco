@@ -291,7 +291,7 @@ function addSolution(problemId){
 function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
 function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
-// عرض المشاكل
+// عرض المشاكل مع زر إرسال رسالة خاصة
 function renderProblems(){
     let list=document.getElementById("problemsList");
     list.innerHTML="";
@@ -306,9 +306,30 @@ function renderProblems(){
                 solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}"><b>الحل بواسطة:</b> ${sol.solver} ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br><b>الحل:</b> ${sol.solution}<br><b>وسيلة التواصل:</b> ${sol.contact}<br><b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
             });}
             let cardColor=getRandomColor();
-            list.innerHTML+=`<div class="card" style="background:${cardColor}"><b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br><b>الوصف:</b> ${p.text}<br><b>المبلغ المطلوب:</b> ${p.price}<br><b>السنة:</b> ${p.schoolYear || "-"}<br><b>الشعبة:</b> ${p.section || "-"}<br><b>المادة:</b> ${p.subject || "-"}<br>${solutionsHTML}<input id="solution${id}" placeholder="اكتب الحل"><input id="contact${id}" placeholder="وسيلة التواصل"><input id="price${id}" placeholder="المبلغ مقابل الحل"><button onclick="addSolution('${id}')">إرسال الحل</button></div>`;
+            // **Send Private Message button next to username**
+            list.innerHTML+=`<div class="card" style="background:${cardColor}">
+                <b>المشكلة من:</b> ${p.user} 
+                <button onclick="dmUser('${p.user}')">ارسال رسالة خاصة</button> 
+                (${timeSince(p.timestamp)}) ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}
+                <br><b>الوصف:</b> ${p.text}<br>
+                <b>المبلغ المطلوب:</b> ${p.price}<br>
+                <b>السنة:</b> ${p.schoolYear || "-"}<br>
+                <b>الشعبة:</b> ${p.section || "-"}<br>
+                <b>المادة:</b> ${p.subject || "-"}<br>
+                ${solutionsHTML}
+                <input id="solution${id}" placeholder="اكتب الحل">
+                <input id="contact${id}" placeholder="وسيلة التواصل">
+                <input id="price${id}" placeholder="المبلغ مقابل الحل">
+                <button onclick="addSolution('${id}')">إرسال الحل</button>
+            </div>`;
         });
     });
+}
+
+// Helper to open DM directly from problems list
+function dmUser(username) {
+    openDM(); 
+    setTimeout(()=>{ openChat(username); }, 200);
 }
 
 // إذا كان المستخدم مسجل من قبل
