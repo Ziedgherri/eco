@@ -199,11 +199,9 @@ const db = firebase.database();
 let currentUser = null;
 const adminEmail = "gherrizied@gmail.com"; // حساب Admin
 
-// ألوان خلفيات عشوائية
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
 function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
 
-// دالة لحساب الوقت منذ النشر
 function timeSince(timestamp){
     const now = Date.now();
     const seconds = Math.floor((now - timestamp)/1000);
@@ -220,7 +218,6 @@ function timeSince(timestamp){
     return `${years} سنة مضت`;
 }
 
-// الهيكل الأساسي للسنة والشعبة والمواد
 const yearSections = {
 "1ère":[""],
 "2ème":["Eco","Lettres","Info","Science","Sport"],
@@ -256,7 +253,8 @@ const subjectsBySection = {
 function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
 function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
 
-// تسجيل الحساب
+// Firebase functions
+
 function register() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -272,14 +270,12 @@ function register() {
     } else { alert("الرجاء إدخال جميع الحقول"); }
 }
 
-// إعادة إرسال التحقق
 function resendVerification() {
     const user = firebase.auth().currentUser;
     if(user){user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});}
     else { alert("يجب تسجيل الدخول أولاً"); }
 }
 
-// تسجيل الدخول
 function login() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -299,18 +295,10 @@ function login() {
     } else { alert("الرجاء إدخال جميع الحقول"); }
 }
 
-// تسجيل الخروج
-function logout() {
-    firebase.auth().signOut().then(() => {
-        localStorage.removeItem("currentUser");
-        location.reload();
-    });
-}
+function logout() {firebase.auth().signOut().then(()=>{localStorage.removeItem("currentUser");location.reload();});}
 
-// إذا كان المستخدم Admin
 function isAdmin(){ return currentUser && currentUser.isAdmin; }
 
-// عرض الصفحة بعد تسجيل الدخول
 function showPlatform(){
     document.getElementById("loginPage").classList.add("hidden");
     document.getElementById("mainPage").classList.remove("hidden");
@@ -318,69 +306,46 @@ function showPlatform(){
     renderProblems();
 }
 
-// إضافة مشكلة
 function addProblem(){
     let text=document.getElementById("problemText").value.trim();
     let price=document.getElementById("problemPrice").value.trim();
     let year=document.getElementById("problemYear").value;
     let section=document.getElementById("problemSection").value;
     let subject=document.getElementById("problemSubject").value;
-
     if(text && price && year && section!=null && subject){
         let newRef=db.ref("problems").push();
-        newRef.set({
-            user: currentUser.name,
-            text:text,
-            price:price,
-            schoolYear:year,
-            section:section,
-            subject:subject,
-            solutions:{},
-            votes:0,
-            timestamp:Date.now()
-        }).then(()=>{
-            document.getElementById("problemText").value="";
-            document.getElementById("problemPrice").value="";
-            document.getElementById("problemYear").value="";
-            document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
-            document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
-        });
+        newRef.set({user: currentUser.name,text,text,price,schoolYear:year,section,subject,solutions:{},votes:0,timestamp:Date.now()})
+        .then(()=>{document.getElementById("problemText").value="";document.getElementById("problemPrice").value="";document.getElementById("problemYear").value="";document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';});
     } else { alert("الرجاء ملء جميع الحقول"); }
 }
 
-// إضافة حل
 function addSolution(problemId){
     let solutionText=document.getElementById("solution"+problemId).value.trim();
     let contactText=document.getElementById("contact"+problemId).value.trim();
     let priceText=document.getElementById("price"+problemId).value.trim();
-
     if(solutionText && contactText && priceText){
         let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
-        newSolutionRef.set({
-            solver:currentUser.name,
-            solution:solutionText,
-            contact:contactText,
-            price:priceText,
-            votes:0
-        }).then(()=>{ renderProblems(); });
+        newSolutionRef.set({solver:currentUser.name,solution:solutionText,contact:contactText,price:priceText,votes:0}).then(()=>{ renderProblems(); });
     } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
 }
 
-// حذف مشكلة وحل (Admin فقط)
 function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
 function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
-// التصويت
-function voteProblem(id,value){ db.ref("problems/"+id+"/votes").transaction(current=> (current||0)+value); }
-function voteSolution(problemId,solId,value){ db.ref("problems/"+problemId+"/solutions/"+solId+"/votes").transaction(current=> (current||0)+value); }
+// Voting functions with refresh
+function voteProblem(id,value){
+    db.ref("problems/"+id+"/votes").transaction(current => (current||0)+value,(error,committed,snapshot)=>{ if(committed) renderProblems(); });
+}
+function voteSolution(problemId,solId,value){
+    db.ref("problems/"+problemId+"/solutions/"+solId+"/votes").transaction(current => (current||0)+value,(error,committed,snapshot)=>{ if(committed) renderProblems(); });
+}
 
-// عرض المشاكل
+// Render problems
 function renderProblems(){
     let list=document.getElementById("problemsList");
     db.ref("problems").once("value").then(snapshot=>{
         let problems=[];
         snapshot.forEach(snap=>{problems.push({id:snap.key,data:snap.val()});});
-        // sort by votes then timestamp
         problems.sort((a,b)=> (b.data.votes||0)-(a.data.votes||0) || b.data.timestamp - a.data.timestamp );
         list.innerHTML="";
         problems.forEach(pObj=>{
@@ -426,7 +391,7 @@ function renderProblems(){
     });
 }
 
-// إذا كان المستخدم مسجل من قبل
+// Load saved user
 let savedUser = localStorage.getItem("currentUser");
 if(savedUser){ currentUser = JSON.parse(savedUser); showPlatform(); }
 </script>
