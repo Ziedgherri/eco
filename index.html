@@ -1,399 +1,322 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>منصة مساعدة التلاميذ</title>
+<title>Student Help Platform</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
 <style>
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    background: #f5f6fa;
-    direction: rtl;
-    color: #333;
+body{
+    margin:0;
+    font-family:Segoe UI;
+    background:#f4f6fb;
+}
+header{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white;
+    padding:15px;
+    text-align:center;
+    font-size:22px;
+    font-weight:bold;
+}
+.container{
+    width:95%;
+    max-width:1000px;
+    margin:20px auto;
+}
+.card{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+}
+input,textarea{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    margin-bottom:10px;
+}
+button{
+    background:#667eea;
+    color:white;
+    border:none;
+    padding:8px 15px;
+    border-radius:8px;
+    cursor:pointer;
+}
+button:hover{opacity:0.9;}
+.vote{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.vote button{
+    background:#eee;
+    color:black;
+}
+.username{
+    color:#667eea;
+    font-weight:bold;
+    cursor:pointer;
+}
+.solution{
+    background:#f8f9ff;
+    padding:10px;
+    border-radius:10px;
+    margin-top:10px;
 }
 
-nav {
-    background: linear-gradient(90deg,#1e3a8a,#2563eb);
-    color: white;
-    padding: 15px 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+/* CHAT */
+.chat-box{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    width:330px;
+    height:450px;
+    background:white;
+    border-radius:15px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    display:none;
+    flex-direction:column;
 }
-
-nav h2 {
-    margin: 0;
-    font-size: 1.5em;
+.chat-header{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white;
+    padding:10px;
+    display:flex;
+    justify-content:space-between;
 }
-
-button {
-    padding: 10px 20px;
-    background: linear-gradient(90deg,#f97316,#f59e0b);
-    border: none;
-    color: white;
-    cursor: pointer;
-    border-radius: 25px;
-    margin-top: 5px;
-    font-weight: bold;
-    transition: all 0.3s;
+.chat-messages{
+    flex:1;
+    padding:10px;
+    overflow-y:auto;
+    background:#f4f6fb;
 }
-
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+.chat-input{
+    display:flex;
+    padding:10px;
 }
-
-input, select, textarea {
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    border-radius: 12px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    font-size: 0.95em;
-}
-
-.container {
-    padding: 25px;
-    max-width: 900px;
-    margin: auto;
-}
-
-.card {
-    padding: 20px;
-    margin-top: 20px;
-    border-radius: 20px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    background: #fff;
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-4px);
-}
-
-.solutionCard {
-    padding: 15px;
-    margin-top: 10px;
-    border-radius: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    background: #fef9f0;
-}
-
-.hidden {
-    display: none;
-}
-
-.tip {
-    background: #fffbcc;
-    border-left: 5px solid #f59e0b;
-    padding: 15px;
-    margin: 15px 0;
-}
-
-.vote-buttons {
-    display: inline-flex;
-    gap: 5px;
-    margin-top: 5px;
-}
-
-.vote-count {
-    font-weight: bold;
-    margin: 0 5px;
-    display: inline-block;
-    min-width: 25px;
-    text-align: center;
-}
-
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 6px rgba(37,99,235,0.3);
-}
-
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
+.chat-input input{
+    flex:1;
 }
 </style>
 </head>
 <body>
 
-<nav>
-<h2>منصة مساعدة التلاميذ</h2>
-<div id="userArea"></div>
-</nav>
+<header>Student Help Platform</header>
 
-<div class="container" id="loginPage">
-<h2>تسجيل الدخول / إنشاء حساب</h2>
-<div class="tip">
-<b>تلميحات مهمة:</b> 
-<ul>
-<li>يجب استخدام بريدك الإلكتروني الحقيقي لتلقي رسالة التحقق.</li>
-<li>لن تتمكن من استخدام المنصة قبل تأكيد البريد.</li>
-<li>الاسم الذي تختاره عند إنشاء الحساب سيظل ثابتًا لكل تسجيل دخول.</li>
-<li>يمكنك إعادة إرسال رسالة التحقق إذا لم تصل.</li>
-</ul>
-</div>
-<input id="displayName" placeholder="أدخل اسمك عند إنشاء الحساب">
-<input id="email" placeholder="أدخل البريد الإلكتروني" type="email">
-<input id="password" placeholder="أدخل كلمة المرور" type="password">
-<button onclick="login()">دخول</button>
-<button onclick="register()">إنشاء حساب</button>
-<button onclick="resendVerification()">إعادة إرسال التحقق</button>
+<div class="container">
+
+<div class="card" id="authBox">
+<h3>Login / Register</h3>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<input id="username" placeholder="Username (for profile)">
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
 </div>
 
-<div class="container hidden" id="mainPage">
+<div id="main" style="display:none;">
 
-<h2>إضافة مشكلة</h2>
-<input id="problemText" placeholder="اكتب مشكلتك">
-<input id="problemPrice" placeholder="كم المبلغ مقابل الحل؟">
-
-<select id="problemYear" onchange="updateSections(); updateSubjects()">
-<option value="">اختر السنة الدراسية</option>
-<option value="1ère">1ère</option>
-<option value="2ème">2ème</option>
-<option value="3ème">3ème</option>
-<option value="4ème/Bac">4ème/Bac</option>
-</select>
-
-<select id="problemSection" onchange="updateSubjects()">
-<option value="">اختر الشعبة</option>
-</select>
-
-<select id="problemSubject">
-<option value="">اختر المادة</option>
-</select>
-
-<button onclick="addProblem()">إضافة المشكلة</button>
-
-<h2 style="margin-top:40px;">قائمة المشاكل</h2>
-<div id="problemsList"></div>
-
+<div class="card">
+<h3>Post a Problem</h3>
+<textarea id="problemText" placeholder="Describe your problem"></textarea>
+<input id="problemPrice" placeholder="Reward amount">
+<button onclick="addProblem()">Post</button>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<div id="problems"></div>
+
+</div>
+</div>
+
+<div class="chat-box" id="chatBox">
+<div class="chat-header">
+<span id="chatTitle"></span>
+<button onclick="closeChat()">X</button>
+</div>
+<div class="chat-messages" id="chatMessages"></div>
+<div class="chat-input">
+<input id="chatInput" placeholder="Write message">
+<button onclick="sendMessage()">Send</button>
+</div>
+</div>
+
 <script>
-// Firebase config
-const firebaseConfig = {
-apiKey: "AIzaSyB4J_b-9NSV_JA678xp8m71nZ2_7I1TKbw",
-authDomain: "emeco2.firebaseapp.com",
-databaseURL: "https://emeco2-default-rtdb.firebaseio.com/",
-projectId: "emeco2",
-storageBucket: "emeco2.firebasestorage.app",
-messagingSenderId: "961569608008",
-appId: "1:961569608008:web:1dc2fa016a1a634e70637d",
-measurementId: "G-12CX368R40"
+var firebaseConfig={
+apiKey:"YOUR_KEY",
+authDomain:"YOUR_DOMAIN",
+databaseURL:"YOUR_DB_URL",
+projectId:"YOUR_ID"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
 
-let currentUser = null;
-const adminEmail = "gherrizied@gmail.com"; // حساب Admin
+var auth=firebase.auth();
+var db=firebase.database();
+var currentUser=null;
+var currentChatId=null;
 
-const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
-function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
-
-function timeSince(timestamp){
-    const now = Date.now();
-    const seconds = Math.floor((now - timestamp)/1000);
-    if(seconds < 60) return `${seconds} ثانية مضت`;
-    const minutes = Math.floor(seconds/60);
-    if(minutes < 60) return `${minutes} دقيقة مضت`;
-    const hours = Math.floor(minutes/60);
-    if(hours < 24) return `${hours} ساعة مضت`;
-    const days = Math.floor(hours/24);
-    if(days < 30) return `${days} يوم مضى`;
-    const months = Math.floor(days/30);
-    if(months < 12) return `${months} شهر مضى`;
-    const years = Math.floor(months/12);
-    return `${years} سنة مضت`;
+function register(){
+auth.createUserWithEmailAndPassword(email.value,password.value)
+.then(cred=>{
+db.ref("users/"+cred.user.uid).set({
+username:username.value,
+email:email.value
+});
+});
 }
 
-const yearSections = {
-"1ère":[""],
-"2ème":["Eco","Lettres","Info","Science","Sport"],
-"3ème":["Eco","Lettres","Info","Science","Sport","Technique","Math"],
-"4ème/Bac":["Eco","Lettres","Info","Science","Sport","Technique","Math"]
-};
-const subjectsBySection = {
-"1ère":["Math","Arabic","French","Physics","Chemistry","History","Geography","Biology","Philosophy","Economics","Sport","Informatics"],
-"2ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
-"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
-"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
-"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
-"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"]
-},
-"3ème":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
-"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
-"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
-"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
-"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"],
-"Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
-"Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
-},
-"4ème/Bac":{"Eco":["Math","Arabic","Economics","French","History","Geography","Physics","Chemistry","Biology","Philosophy","Informatics","Sport"],
-"Lettres":["Arabic","French","History","Philosophy","Geography","Physics","Chemistry","Biology","Economics","Informatics","Sport"],
-"Info":["Math","Informatics","Physics","Arabic","Chemistry","Biology","French","Economics","History","Sport"],
-"Science":["Math","Physics","Chemistry","Biology","Arabic","Informatics","French","Economics","History","Sport"],
-"Sport":["Sport","Biology","Arabic","Math","Physics","Chemistry","French","Informatics","Economics","History"],
-"Technique":["Math","Physics","Chemistry","Arabic","Informatics","French","Biology","Economics","History","Geography","Sport"],
-"Math":["Math","Physics","Arabic","Chemistry","Biology","French","Informatics","Economics","History","Geography","Sport"]
-}
-};
-
-function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
-function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
-
-// Firebase functions
-
-function register() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const displayName = document.getElementById("displayName").value.trim();
-    if(email && password && displayName){
-        firebase.auth().createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            db.ref("users/" + user.uid).set({name: displayName,email: user.email});
-            user.sendEmailVerification().then(()=>{alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");});
-        })
-        .catch((error) => { alert(error.message); });
-    } else { alert("الرجاء إدخال جميع الحقول"); }
+function login(){
+auth.signInWithEmailAndPassword(email.value,password.value);
 }
 
-function resendVerification() {
-    const user = firebase.auth().currentUser;
-    if(user){user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});}
-    else { alert("يجب تسجيل الدخول أولاً"); }
+auth.onAuthStateChanged(user=>{
+if(user){
+currentUser=user;
+authBox.style.display="none";
+main.style.display="block";
+loadProblems();
 }
-
-function login() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-    if(email && password){
-        firebase.auth().signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            if(!user.emailVerified){alert("يرجى تأكيد بريدك الإلكتروني أولاً!");firebase.auth().signOut();return;}
-            db.ref("users/" + user.uid).once("value").then(snapshot => {
-                const data = snapshot.val();
-                currentUser = {email: user.email,name: data.name,isAdmin: (user.email===adminEmail)};
-                localStorage.setItem("currentUser", JSON.stringify(currentUser));
-                showPlatform();
-            });
-        })
-        .catch((error) => { alert(error.message); });
-    } else { alert("الرجاء إدخال جميع الحقول"); }
-}
-
-function logout() {firebase.auth().signOut().then(()=>{localStorage.removeItem("currentUser");location.reload();});}
-
-function isAdmin(){ return currentUser && currentUser.isAdmin; }
-
-function showPlatform(){
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("mainPage").classList.remove("hidden");
-    document.getElementById("userArea").innerHTML="مرحباً "+currentUser.name+" <button onclick='logout()'>تسجيل الخروج</button>";
-    renderProblems();
-}
+});
 
 function addProblem(){
-    let text=document.getElementById("problemText").value.trim();
-    let price=document.getElementById("problemPrice").value.trim();
-    let year=document.getElementById("problemYear").value;
-    let section=document.getElementById("problemSection").value;
-    let subject=document.getElementById("problemSubject").value;
-    if(text && price && year && section!=null && subject){
-        let newRef=db.ref("problems").push();
-        newRef.set({user: currentUser.name,text,text,price,schoolYear:year,section,subject,solutions:{},votes:0,timestamp:Date.now()})
-        .then(()=>{document.getElementById("problemText").value="";document.getElementById("problemPrice").value="";document.getElementById("problemYear").value="";document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';});
-    } else { alert("الرجاء ملء جميع الحقول"); }
+db.ref("problems").push({
+text:problemText.value,
+price:problemPrice.value,
+userId:currentUser.uid,
+votes:0,
+timestamp:Date.now()
+});
+problemText.value="";
+problemPrice.value="";
+}
+
+function loadProblems(){
+db.ref("problems").on("value",snap=>{
+problems.innerHTML="";
+snap.forEach(child=>{
+let p=child.val();
+let id=child.key;
+db.ref("users/"+p.userId).once("value",u=>{
+let uname=u.val()?.username||"User";
+problems.innerHTML+=`
+<div class="card">
+From: <span class="username" onclick="startChat('${p.userId}','${uname}')">${uname}</span><br><br>
+${p.text}<br>
+Reward: ${p.price}<br><br>
+
+<div class="vote">
+<button onclick="voteProblem('${id}',1)">👍</button>
+<span>${p.votes||0}</span>
+<button onclick="voteProblem('${id}',-1)">👎</button>
+</div>
+
+<div>
+<textarea id="solText${id}" placeholder="Write solution"></textarea>
+<button onclick="addSolution('${id}')">Add Solution</button>
+</div>
+
+<div id="solutions${id}"></div>
+
+</div>`;
+loadSolutions(id);
+});
+});
+});
+}
+
+function voteProblem(id,val){
+db.ref("problems/"+id+"/votes")
+.transaction(v=>(v||0)+val);
 }
 
 function addSolution(problemId){
-    let solutionText=document.getElementById("solution"+problemId).value.trim();
-    let contactText=document.getElementById("contact"+problemId).value.trim();
-    let priceText=document.getElementById("price"+problemId).value.trim();
-    if(solutionText && contactText && priceText){
-        let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
-        newSolutionRef.set({solver:currentUser.name,solution:solutionText,contact:contactText,price:priceText,votes:0}).then(()=>{ renderProblems(); });
-    } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
+db.ref("problems/"+problemId+"/solutions").push({
+text:document.getElementById("solText"+problemId).value,
+userId:currentUser.uid,
+votes:0
+});
 }
 
-function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
-function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
-
-// Voting functions with refresh
-function voteProblem(id,value){
-    db.ref("problems/"+id+"/votes").transaction(current => (current||0)+value,(error,committed,snapshot)=>{ if(committed) renderProblems(); });
-}
-function voteSolution(problemId,solId,value){
-    db.ref("problems/"+problemId+"/solutions/"+solId+"/votes").transaction(current => (current||0)+value,(error,committed,snapshot)=>{ if(committed) renderProblems(); });
-}
-
-// Render problems
-function renderProblems(){
-    let list=document.getElementById("problemsList");
-    db.ref("problems").once("value").then(snapshot=>{
-        let problems=[];
-        snapshot.forEach(snap=>{problems.push({id:snap.key,data:snap.val()});});
-        problems.sort((a,b)=> (b.data.votes||0)-(a.data.votes||0) || b.data.timestamp - a.data.timestamp );
-        list.innerHTML="";
-        problems.forEach(pObj=>{
-            let p=pObj.data;
-            let id=pObj.id;
-            let solutionsHTML="";
-            if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
-                let solutionColor=getRandomColor();
-                solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}">
-                <b>الحل بواسطة:</b> ${sol.solver} 
-                ${isAdmin()?`<button onclick="deleteSolution('${id}','${solId}')">حذف</button>`:""}<br>
-                <b>الحل:</b> ${sol.solution}<br>
-                <b>وسيلة التواصل:</b> ${sol.contact}<br>
-                <b>المبلغ مقابل الحل:</b> ${sol.price}<br>
-                <div class="vote-buttons">
-                    <button onclick="voteSolution('${id}','${solId}',1)">👍</button>
-                    <span class="vote-count">${sol.votes||0}</span>
-                    <button onclick="voteSolution('${id}','${solId}',-1)">👎</button>
-                </div>
-                </div>`;
-            });}
-            let cardColor=getRandomColor();
-            list.innerHTML+=`<div class="card" style="background:${cardColor}">
-            <b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) 
-            ${isAdmin()?`<button onclick="deleteProblem('${id}')">حذف</button>`:""}<br>
-            <b>الوصف:</b> ${p.text}<br>
-            <b>المبلغ المطلوب:</b> ${p.price}<br>
-            <b>السنة:</b> ${p.schoolYear||"-"}<br>
-            <b>الشعبة:</b> ${p.section||"-"}<br>
-            <b>المادة:</b> ${p.subject||"-"}<br>
-            <div class="vote-buttons">
-                <button onclick="voteProblem('${id}',1)">👍</button>
-                <span class="vote-count">${p.votes||0}</span>
-                <button onclick="voteProblem('${id}',-1)">👎</button>
-            </div>
-            ${solutionsHTML}
-            <input id="solution${id}" placeholder="اكتب الحل">
-            <input id="contact${id}" placeholder="وسيلة التواصل">
-            <input id="price${id}" placeholder="المبلغ مقابل الحل">
-            <button onclick="addSolution('${id}')">إرسال الحل</button>
-            </div>`;
-        });
-    });
+function loadSolutions(problemId){
+db.ref("problems/"+problemId+"/solutions")
+.on("value",snap=>{
+let div=document.getElementById("solutions"+problemId);
+div.innerHTML="";
+snap.forEach(child=>{
+let s=child.val();
+let sid=child.key;
+db.ref("users/"+s.userId).once("value",u=>{
+let uname=u.val()?.username||"User";
+div.innerHTML+=`
+<div class="solution">
+<span class="username" onclick="startChat('${s.userId}','${uname}')">${uname}</span>: ${s.text}
+<div class="vote">
+<button onclick="voteSolution('${problemId}','${sid}',1)">👍</button>
+<span>${s.votes||0}</span>
+<button onclick="voteSolution('${problemId}','${sid}',-1)">👎</button>
+</div>
+</div>`;
+});
+});
+});
 }
 
-// Load saved user
-let savedUser = localStorage.getItem("currentUser");
-if(savedUser){ currentUser = JSON.parse(savedUser); showPlatform(); }
+function voteSolution(pid,sid,val){
+db.ref("problems/"+pid+"/solutions/"+sid+"/votes")
+.transaction(v=>(v||0)+val);
+}
+
+function generateChatId(a,b){
+return a<b?a+"_"+b:b+"_"+a;
+}
+
+function startChat(otherId,name){
+currentChatId=generateChatId(currentUser.uid,otherId);
+chatBox.style.display="flex";
+chatTitle.innerText="Chat with "+name;
+
+db.ref("chats/"+currentChatId+"/messages")
+.on("value",snap=>{
+chatMessages.innerHTML="";
+snap.forEach(m=>{
+let msg=m.val();
+let align=msg.sender===currentUser.uid?"right":"left";
+chatMessages.innerHTML+=`
+<div style="text-align:${align};margin:5px;">
+<span style="
+background:${align==="right"?"#667eea":"#ddd"};
+color:${align==="right"?"white":"black"};
+padding:6px 10px;
+border-radius:10px;
+display:inline-block;">
+${msg.text}
+</span>
+</div>`;
+});
+chatMessages.scrollTop=chatMessages.scrollHeight;
+});
+}
+
+function sendMessage(){
+if(!chatInput.value)return;
+db.ref("chats/"+currentChatId+"/messages").push({
+sender:currentUser.uid,
+text:chatInput.value,
+timestamp:Date.now()
+});
+chatInput.value="";
+}
+
+function closeChat(){
+chatBox.style.display="none";
+}
 </script>
+
 </body>
 </html>
