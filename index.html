@@ -71,21 +71,6 @@ input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px
 
 </div>
 
-<!-- Private Messaging Sidebar -->
-<div id="dmSidebar" class="hidden" style="position:fixed;top:0;right:0;width:50%;height:100%;background:white;box-shadow:-4px 0 8px rgba(0,0,0,0.1);overflow:auto;z-index:9999;transition:transform 0.3s;transform:translateX(100%);">
-    <div style="padding:10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ccc;">
-        <h3>الرسائل الخاصة</h3>
-        <button onclick="closeDM()">إغلاق</button>
-    </div>
-    <div style="display:flex;height:calc(100% - 50px);">
-        <div id="dmUsersList" style="width:35%;border-right:1px solid #ccc;overflow:auto;"></div>
-        <div id="dmChatArea" style="width:65%;padding:10px;display:flex;flex-direction:column;justify-content:flex-end;overflow:auto;"></div>
-    </div>
-</div>
-
-<!-- DM Button -->
-<button id="openDMBtn" style="position:fixed;bottom:20px;left:20px;background:#2563eb;color:white;padding:10px 15px;border-radius:50px;z-index:1000;" onclick="openDM()">الرسائل الخاصة</button>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -266,7 +251,13 @@ function addProblem(){
             subject:subject,
             solutions:{},
             timestamp:Date.now()
-        }).then(()=>{ document.getElementById("problemText").value=""; document.getElementById("problemPrice").value=""; document.getElementById("problemYear").value=""; document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>'; document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>'; });
+        }).then(()=>{
+            document.getElementById("problemText").value="";
+            document.getElementById("problemPrice").value="";
+            document.getElementById("problemYear").value="";
+            document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
+            document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
+        });
     } else { alert("الرجاء ملء جميع الحقول"); }
 }
 
@@ -291,7 +282,7 @@ function addSolution(problemId){
 function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
 function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
-// عرض المشاكل مع زر إرسال رسالة خاصة
+// عرض المشاكل
 function renderProblems(){
     let list=document.getElementById("problemsList");
     list.innerHTML="";
@@ -303,33 +294,30 @@ function renderProblems(){
             let solutionsHTML="";
             if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
                 let solutionColor=getRandomColor();
-                solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}"><b>الحل بواسطة:</b> ${sol.solver} ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br><b>الحل:</b> ${sol.solution}<br><b>وسيلة التواصل:</b> ${sol.contact}<br><b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
+                solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}">
+                <b>الحل بواسطة:</b> ${sol.solver} 
+                ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br>
+                <b>الحل:</b> ${sol.solution}<br>
+                <b>وسيلة التواصل:</b> ${sol.contact}<br>
+                <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
             });}
             let cardColor=getRandomColor();
-            // **Send Private Message button next to username**
             list.innerHTML+=`<div class="card" style="background:${cardColor}">
-                <b>المشكلة من:</b> ${p.user} 
-                <button onclick="dmUser('${p.user}')">ارسال رسالة خاصة</button> 
-                (${timeSince(p.timestamp)}) ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}
-                <br><b>الوصف:</b> ${p.text}<br>
-                <b>المبلغ المطلوب:</b> ${p.price}<br>
-                <b>السنة:</b> ${p.schoolYear || "-"}<br>
-                <b>الشعبة:</b> ${p.section || "-"}<br>
-                <b>المادة:</b> ${p.subject || "-"}<br>
-                ${solutionsHTML}
-                <input id="solution${id}" placeholder="اكتب الحل">
-                <input id="contact${id}" placeholder="وسيلة التواصل">
-                <input id="price${id}" placeholder="المبلغ مقابل الحل">
-                <button onclick="addSolution('${id}')">إرسال الحل</button>
+            <b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) 
+            ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br>
+            <b>الوصف:</b> ${p.text}<br>
+            <b>المبلغ المطلوب:</b> ${p.price}<br>
+            <b>السنة:</b> ${p.schoolYear || "-"}<br>
+            <b>الشعبة:</b> ${p.section || "-"}<br>
+            <b>المادة:</b> ${p.subject || "-"}<br>
+            ${solutionsHTML}
+            <input id="solution${id}" placeholder="اكتب الحل">
+            <input id="contact${id}" placeholder="وسيلة التواصل">
+            <input id="price${id}" placeholder="المبلغ مقابل الحل">
+            <button onclick="addSolution('${id}')">إرسال الحل</button>
             </div>`;
         });
     });
-}
-
-// Helper to open DM directly from problems list
-function dmUser(username) {
-    openDM(); 
-    setTimeout(()=>{ openChat(username); }, 200);
 }
 
 // إذا كان المستخدم مسجل من قبل
@@ -337,101 +325,6 @@ let savedUser = localStorage.getItem("currentUser");
 if(savedUser){
     currentUser = JSON.parse(savedUser);
     showPlatform();
-}
-
-/* ------------------ Private Messaging ------------------ */
-const dmRef = db.ref("privateMessages"); // Firebase node for private messages
-let currentChatUser = null;
-
-function openDM() {
-    document.getElementById("dmSidebar").classList.remove("hidden");
-    document.getElementById("dmSidebar").style.transform = "translateX(0)";
-    loadDMUsers();
-}
-
-function closeDM() {
-    document.getElementById("dmSidebar").style.transform = "translateX(100%)";
-}
-
-function loadDMUsers() {
-    const listDiv = document.getElementById("dmUsersList");
-    listDiv.innerHTML = "";
-    dmRef.once("value").then(snapshot => {
-        let usersSet = new Set();
-        snapshot.forEach(snap => {
-            const msg = snap.val();
-            if(msg.from === currentUser.name) usersSet.add(msg.to);
-            if(msg.to === currentUser.name) usersSet.add(msg.from);
-        });
-        usersSet.forEach(user => {
-            let btn = document.createElement("button");
-            btn.style.display="block";
-            btn.style.width="100%";
-            btn.style.padding="10px";
-            btn.style.margin="5px 0";
-            btn.style.textAlign="right";
-            btn.innerText = user;
-            btn.onclick = ()=> openChat(user);
-            listDiv.appendChild(btn);
-        });
-    });
-}
-
-function openChat(user) {
-    currentChatUser = user;
-    const chatDiv = document.getElementById("dmChatArea");
-    chatDiv.innerHTML = "";
-    
-    const inputDiv = document.createElement("div");
-    inputDiv.style.display="flex";
-    inputDiv.style.marginTop="auto";
-
-    const msgInput = document.createElement("input");
-    msgInput.style.flex="1";
-    msgInput.style.padding="8px";
-    msgInput.placeholder="اكتب رسالتك هنا...";
-    msgInput.id = "dmMessageInput";
-
-    const sendBtn = document.createElement("button");
-    sendBtn.innerText="إرسال";
-    sendBtn.onclick = ()=> sendDM();
-
-    inputDiv.appendChild(msgInput);
-    inputDiv.appendChild(sendBtn);
-    chatDiv.appendChild(inputDiv);
-
-    dmRef.orderByChild("timestamp").on("value", snapshot => {
-        chatDiv.innerHTML = "";
-        snapshot.forEach(snap=>{
-            const msg = snap.val();
-            if((msg.from===currentUser.name && msg.to===user) || (msg.to===currentUser.name && msg.from===user)){
-                let div = document.createElement("div");
-                div.style.background = (msg.from===currentUser.name) ? "#60a5fa" : "#f3f4f6";
-                div.style.color = (msg.from===currentUser.name) ? "white":"black";
-                div.style.padding="8px";
-                div.style.margin="5px 0";
-                div.style.borderRadius="10px";
-                div.innerText = `${msg.from}: ${msg.text}`;
-                chatDiv.appendChild(div);
-            }
-        });
-        chatDiv.appendChild(inputDiv);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-    });
-}
-
-function sendDM() {
-    const input = document.getElementById("dmMessageInput");
-    const text = input.value.trim();
-    if(currentChatUser && text){
-        dmRef.push({
-            from: currentUser.name,
-            to: currentChatUser,
-            text:text,
-            timestamp:Date.now()
-        });
-        input.value="";
-    }
 }
 </script>
 </body>
