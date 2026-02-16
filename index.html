@@ -5,15 +5,122 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>منصة مساعدة التلاميذ</title>
 <style>
-body{font-family:Arial;margin:0;background:#f3f4f6;direction:rtl;}
-nav{background:#1e3a8a;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;}
-button{padding:8px 15px;background:#2563eb;border:none;color:white;cursor:pointer;border-radius:20px;margin-top:5px;}
-input, select, textarea{width:100%;padding:8px;margin-top:8px;border-radius:10px;border:1px solid #ccc;}
-.container{padding:20px;}
-.card{padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}
-.solutionCard{padding:10px;margin-top:8px;border-radius:10px;}
-.hidden{display:none;}
-.tip{background:#fffbcc;border-left:5px solid #f59e0b;padding:10px;margin:10px 0;}
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: #f5f6fa;
+    direction: rtl;
+    color: #333;
+}
+
+nav {
+    background: linear-gradient(90deg,#1e3a8a,#2563eb);
+    color: white;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+nav h2 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+button {
+    padding: 10px 20px;
+    background: linear-gradient(90deg,#f97316,#f59e0b);
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 25px;
+    margin-top: 5px;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    font-size: 0.95em;
+}
+
+.container {
+    padding: 25px;
+    max-width: 900px;
+    margin: auto;
+}
+
+.card {
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    background: #fff;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+.solutionCard {
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    background: #fef9f0;
+}
+
+.hidden {
+    display: none;
+}
+
+.tip {
+    background: #fffbcc;
+    border-left: 5px solid #f59e0b;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.vote-buttons {
+    display: inline-flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.vote-count {
+    font-weight: bold;
+    margin: 0 5px;
+    display: inline-block;
+    min-width: 25px;
+    text-align: center;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 6px rgba(37,99,235,0.3);
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
 </style>
 </head>
 <body>
@@ -92,11 +199,9 @@ const db = firebase.database();
 let currentUser = null;
 const adminEmail = "gherrizied@gmail.com"; // حساب Admin
 
-// ألوان خلفيات عشوائية
 const cardColors = ["#fef3c7","#fde68a","#fcd34d","#fbbf24","#f59e0b","#f97316","#fb923c","#f87171","#f472b6","#c084fc","#8b5cf6","#60a5fa","#34d399","#86efac"];
 function getRandomColor(){return cardColors[Math.floor(Math.random()*cardColors.length)];}
 
-// دالة لحساب الوقت منذ النشر
 function timeSince(timestamp){
     const now = Date.now();
     const seconds = Math.floor((now - timestamp)/1000);
@@ -113,7 +218,6 @@ function timeSince(timestamp){
     return `${years} سنة مضت`;
 }
 
-// الهيكل الأساسي للسنة والشعبة والمواد
 const yearSections = {
 "1ère":[""],
 "2ème":["Eco","Lettres","Info","Science","Sport"],
@@ -149,7 +253,8 @@ const subjectsBySection = {
 function updateSections(){let year=document.getElementById("problemYear").value;let sectionSelect=document.getElementById("problemSection");sectionSelect.innerHTML='<option value="">اختر الشعبة</option>';if(year && yearSections[year]){yearSections[year].forEach(sec=>{sectionSelect.innerHTML+=`<option value="${sec}">${sec}</option>`;});} updateSubjects();}
 function updateSubjects(){let year=document.getElementById("problemYear").value;let section=document.getElementById("problemSection").value;let subjectSelect=document.getElementById("problemSubject");subjectSelect.innerHTML='<option value="">اختر المادة</option>';if(year=="1ère"){subjectsBySection["1ère"].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}else if(year && section && subjectsBySection[year] && subjectsBySection[year][section]){subjectsBySection[year][section].forEach(sub=>{subjectSelect.innerHTML+=`<option value="${sub}">${sub}</option>`;});}}
 
-// تسجيل الحساب
+// Firebase functions
+
 function register() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -158,31 +263,19 @@ function register() {
         firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-
-            // حفظ الاسم في Firebase Database
-            db.ref("users/" + user.uid).set({
-                name: displayName,
-                email: user.email
-            });
-
-            user.sendEmailVerification()
-            .then(() => {
-                alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");
-            });
+            db.ref("users/" + user.uid).set({name: displayName,email: user.email});
+            user.sendEmailVerification().then(()=>{alert("تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق قبل استخدام المنصة.");});
         })
         .catch((error) => { alert(error.message); });
     } else { alert("الرجاء إدخال جميع الحقول"); }
 }
 
-// إعادة إرسال التحقق
 function resendVerification() {
     const user = firebase.auth().currentUser;
-    if(user){
-        user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});
-    } else { alert("يجب تسجيل الدخول أولاً"); }
+    if(user){user.sendEmailVerification().then(()=>{alert("تم إعادة إرسال رسالة التحقق.");});}
+    else { alert("يجب تسجيل الدخول أولاً"); }
 }
 
-// تسجيل الدخول
 function login() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -190,21 +283,10 @@ function login() {
         firebase.auth().signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-
-            if(!user.emailVerified){
-                alert("يرجى تأكيد بريدك الإلكتروني أولاً!");
-                firebase.auth().signOut();
-                return;
-            }
-
-            // جلب الاسم من Firebase Database
+            if(!user.emailVerified){alert("يرجى تأكيد بريدك الإلكتروني أولاً!");firebase.auth().signOut();return;}
             db.ref("users/" + user.uid).once("value").then(snapshot => {
                 const data = snapshot.val();
-                currentUser = {
-                    email: user.email,
-                    name: data.name,
-                    isAdmin: (user.email===adminEmail)
-                };
+                currentUser = {email: user.email,name: data.name,isAdmin: (user.email===adminEmail)};
                 localStorage.setItem("currentUser", JSON.stringify(currentUser));
                 showPlatform();
             });
@@ -213,18 +295,10 @@ function login() {
     } else { alert("الرجاء إدخال جميع الحقول"); }
 }
 
-// تسجيل الخروج
-function logout() {
-    firebase.auth().signOut().then(() => {
-        localStorage.removeItem("currentUser");
-        location.reload();
-    });
-}
+function logout() {firebase.auth().signOut().then(()=>{localStorage.removeItem("currentUser");location.reload();});}
 
-// إذا كان المستخدم Admin
 function isAdmin(){ return currentUser && currentUser.isAdmin; }
 
-// عرض الصفحة بعد تسجيل الدخول
 function showPlatform(){
     document.getElementById("loginPage").classList.add("hidden");
     document.getElementById("mainPage").classList.remove("hidden");
@@ -232,84 +306,81 @@ function showPlatform(){
     renderProblems();
 }
 
-// إضافة مشكلة
 function addProblem(){
     let text=document.getElementById("problemText").value.trim();
     let price=document.getElementById("problemPrice").value.trim();
     let year=document.getElementById("problemYear").value;
     let section=document.getElementById("problemSection").value;
     let subject=document.getElementById("problemSubject").value;
-
     if(text && price && year && section!=null && subject){
         let newRef=db.ref("problems").push();
-        newRef.set({
-            user: currentUser.name,
-            text:text,
-            price:price,
-            schoolYear:year,
-            section:section,
-            subject:subject,
-            solutions:{},
-            timestamp:Date.now()
-        }).then(()=>{
-            document.getElementById("problemText").value="";
-            document.getElementById("problemPrice").value="";
-            document.getElementById("problemYear").value="";
-            document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';
-            document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';
-        });
+        newRef.set({user: currentUser.name,text,text,price,schoolYear:year,section,subject,solutions:{},votes:0,timestamp:Date.now()})
+        .then(()=>{document.getElementById("problemText").value="";document.getElementById("problemPrice").value="";document.getElementById("problemYear").value="";document.getElementById("problemSection").innerHTML='<option value="">اختر الشعبة</option>';document.getElementById("problemSubject").innerHTML='<option value="">اختر المادة</option>';});
     } else { alert("الرجاء ملء جميع الحقول"); }
 }
 
-// إضافة حل
 function addSolution(problemId){
     let solutionText=document.getElementById("solution"+problemId).value.trim();
     let contactText=document.getElementById("contact"+problemId).value.trim();
     let priceText=document.getElementById("price"+problemId).value.trim();
-
     if(solutionText && contactText && priceText){
         let newSolutionRef=db.ref("problems/"+problemId+"/solutions").push();
-        newSolutionRef.set({
-            solver:currentUser.name,
-            solution:solutionText,
-            contact:contactText,
-            price:priceText
-        }).then(()=>{ renderProblems(); });
+        newSolutionRef.set({solver:currentUser.name,solution:solutionText,contact:contactText,price:priceText,votes:0}).then(()=>{ renderProblems(); });
     } else { alert("الرجاء ملء كل الحقول لإرسال الحل"); }
 }
 
-// حذف مشكلة وحل (Admin فقط)
 function deleteProblem(id){ if(isAdmin()){ if(confirm("هل أنت متأكد من حذف هذه المشكلة؟")) db.ref("problems/"+id).remove(); } else alert("ليست لديك صلاحية"); }
 function deleteSolution(problemId, solId){ if(isAdmin()){ if(confirm("هل تريد حذف هذا الحل؟")) db.ref("problems/"+problemId+"/solutions/"+solId).remove(); } else alert("ليست لديك صلاحية"); }
 
-// عرض المشاكل
+// Voting functions with refresh
+function voteProblem(id,value){
+    db.ref("problems/"+id+"/votes").transaction(current => (current||0)+value,(error,committed,snapshot)=>{ if(committed) renderProblems(); });
+}
+function voteSolution(problemId,solId,value){
+    db.ref("problems/"+problemId+"/solutions/"+solId+"/votes").transaction(current => (current||0)+value,(error,committed,snapshot)=>{ if(committed) renderProblems(); });
+}
+
+// Render problems
 function renderProblems(){
     let list=document.getElementById("problemsList");
-    list.innerHTML="";
-    db.ref("problems").orderByChild("timestamp").on("value", snapshot=>{
+    db.ref("problems").once("value").then(snapshot=>{
+        let problems=[];
+        snapshot.forEach(snap=>{problems.push({id:snap.key,data:snap.val()});});
+        problems.sort((a,b)=> (b.data.votes||0)-(a.data.votes||0) || b.data.timestamp - a.data.timestamp );
         list.innerHTML="";
-        snapshot.forEach(snap=>{
-            let p=snap.val();
-            let id=snap.key;
+        problems.forEach(pObj=>{
+            let p=pObj.data;
+            let id=pObj.id;
             let solutionsHTML="";
             if(p.solutions){Object.entries(p.solutions).forEach(([solId,sol])=>{
                 let solutionColor=getRandomColor();
                 solutionsHTML+=`<div class="solutionCard" style="background:${solutionColor}">
                 <b>الحل بواسطة:</b> ${sol.solver} 
-                ${isAdmin() ? `<button onclick="deleteSolution('${id}','${solId}')">حذف</button>` : ""}<br>
+                ${isAdmin()?`<button onclick="deleteSolution('${id}','${solId}')">حذف</button>`:""}<br>
                 <b>الحل:</b> ${sol.solution}<br>
                 <b>وسيلة التواصل:</b> ${sol.contact}<br>
-                <b>المبلغ مقابل الحل:</b> ${sol.price}</div>`;
+                <b>المبلغ مقابل الحل:</b> ${sol.price}<br>
+                <div class="vote-buttons">
+                    <button onclick="voteSolution('${id}','${solId}',1)">👍</button>
+                    <span class="vote-count">${sol.votes||0}</span>
+                    <button onclick="voteSolution('${id}','${solId}',-1)">👎</button>
+                </div>
+                </div>`;
             });}
             let cardColor=getRandomColor();
             list.innerHTML+=`<div class="card" style="background:${cardColor}">
             <b>المشكلة من:</b> ${p.user} (${timeSince(p.timestamp)}) 
-            ${isAdmin() ? `<button onclick="deleteProblem('${id}')">حذف</button>` : ""}<br>
+            ${isAdmin()?`<button onclick="deleteProblem('${id}')">حذف</button>`:""}<br>
             <b>الوصف:</b> ${p.text}<br>
             <b>المبلغ المطلوب:</b> ${p.price}<br>
-            <b>السنة:</b> ${p.schoolYear || "-"}<br>
-            <b>الشعبة:</b> ${p.section || "-"}<br>
-            <b>المادة:</b> ${p.subject || "-"}<br>
+            <b>السنة:</b> ${p.schoolYear||"-"}<br>
+            <b>الشعبة:</b> ${p.section||"-"}<br>
+            <b>المادة:</b> ${p.subject||"-"}<br>
+            <div class="vote-buttons">
+                <button onclick="voteProblem('${id}',1)">👍</button>
+                <span class="vote-count">${p.votes||0}</span>
+                <button onclick="voteProblem('${id}',-1)">👎</button>
+            </div>
             ${solutionsHTML}
             <input id="solution${id}" placeholder="اكتب الحل">
             <input id="contact${id}" placeholder="وسيلة التواصل">
@@ -320,12 +391,9 @@ function renderProblems(){
     });
 }
 
-// إذا كان المستخدم مسجل من قبل
+// Load saved user
 let savedUser = localStorage.getItem("currentUser");
-if(savedUser){
-    currentUser = JSON.parse(savedUser);
-    showPlatform();
-}
+if(savedUser){ currentUser = JSON.parse(savedUser); showPlatform(); }
 </script>
 </body>
 </html>
